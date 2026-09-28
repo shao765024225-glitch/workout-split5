@@ -1,1 +1,1671 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>五分化训练助手</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+  :root{
+    --bg:#0B0E14; --bg2:#10141C; --card:#151A24; --card2:#1B2230; --line:#222B3B;
+    --txt:#E8ECF3; --txt2:#9AA4B2; --txt3:#66717F;
+    --accent:#FF7A1A; --accent2:#FF9B4D; --accent-soft:rgba(255,122,26,.12);
+    --ok:#34C77B; --ok-soft:rgba(52,199,123,.14);
+    --danger:#E87373;
+    --r:14px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+    font-size:15px; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .num{font-family:"Barlow Condensed","Arial Narrow","PingFang SC",sans-serif;font-weight:600;font-variant-numeric:tabular-nums}
+
+  #app{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;position:relative;padding-bottom:112px}
+  main{flex:1;padding:14px 14px 28px}
+  .view{display:none}
+  .view.active{display:block;animation:fadeIn .22s ease}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* ===== 顶栏 ===== */
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:6px 2px 12px}
+  .topbar h1{font-size:19px;font-weight:700;letter-spacing:.5px}
+  .topbar .sub{font-size:12px;color:var(--txt3);margin-top:1px}
+  .logo{display:flex;align-items:center;gap:8px}
+  .logo-badge{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),#FF5A1F);display:flex;align-items:center;justify-content:center;flex:none}
+  .logo-badge svg{width:17px;height:17px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+  /* ===== 训练日选择 ===== */
+  .daytabs{display:flex;gap:8px;overflow-x:auto;padding:2px 0 14px;scrollbar-width:none}
+  .daytabs::-webkit-scrollbar{display:none}
+  .daytab{flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:58px;padding:9px 6px;border-radius:12px;background:var(--card);border:1px solid var(--line);color:var(--txt2);cursor:pointer;transition:all .18s}
+  .daytab .dt-name{font-size:13.5px;font-weight:600}
+  .daytab .dt-en{font-size:10px;letter-spacing:1px;color:var(--txt3)}
+  .daytab.on{background:var(--accent-soft);border-color:var(--accent);color:var(--txt)}
+  .daytab.on .dt-en{color:var(--accent2)}
+  .daytab.rest{border-style:dashed}
+  .daytab-hint{font-size:11px;color:var(--txt3);text-align:center;margin:-8px 0 4px}
+
+  /* ===== 今日头部 ===== */
+  .hero{position:relative;border-radius:18px;overflow:hidden;background:linear-gradient(150deg,#1A2233 0%,#141A26 60%,#10141C 100%);border:1px solid var(--line);padding:18px 16px 16px;margin-bottom:14px}
+  .hero::before{content:"";position:absolute;inset:0;background:radial-gradient(420px 180px at 90% -20%,rgba(255,122,26,.22),transparent 70%);pointer-events:none}
+  .hero-top{display:flex;justify-content:space-between;align-items:flex-start;position:relative}
+  .hero-day{display:flex;align-items:center;gap:9px}
+  .hero-day .pill{font-size:12px;font-weight:600;color:#fff;background:var(--accent);padding:3px 10px;border-radius:999px;letter-spacing:1px}
+  .hero-day .pill.idle{background:#3A4253}
+  .hero-meta{text-align:right}
+  .hero-meta .date{font-size:12.5px;color:var(--txt2)}
+  .hero-meta .round{font-size:11.5px;color:var(--txt3);margin-top:1px}
+  .hero-focus{font-size:13px;color:var(--txt2);margin-top:10px;position:relative}
+  .hero-focus b{color:var(--accent2);font-weight:600}
+  .timer-row{display:flex;align-items:baseline;gap:10px;margin-top:10px;position:relative}
+  .timer{font-size:52px;font-weight:700;line-height:1;letter-spacing:1px;color:#fff}
+  .timer .unit{font-size:16px;color:var(--txt3);font-weight:500;margin-left:2px}
+  .prog-num{font-size:20px;color:var(--accent2);font-weight:700}
+  .prog-num .t{font-size:12px;color:var(--txt3);font-weight:500;margin-right:4px}
+  .prog-bar{height:7px;border-radius:99px;background:#222B3B;margin-top:12px;position:relative;overflow:hidden}
+  .prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),#FF9B4D);width:0%;transition:width .3s ease}
+  .prog-label{display:flex;justify-content:space-between;font-size:11.5px;color:var(--txt3);margin-top:6px;position:relative}
+  .prog-label .done{color:var(--txt2)}
+  .prog-label .done b{color:var(--accent2);font-weight:600}
+  .timer-ctrl{display:flex;gap:8px;margin-top:12px;position:relative}
+  .tbtn{flex:1;padding:10px;border-radius:11px;border:1px solid var(--line);background:var(--card2);color:var(--txt2);font-size:13.5px;font-weight:600;cursor:pointer;transition:all .15s}
+  .tbtn:active{opacity:.8}
+  .tbtn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tbtn.warn{color:var(--danger);border-color:rgba(230,90,90,.35);background:rgba(230,90,90,.06)}
+
+  /* ===== 循环指示 ===== */
+  .cycle{display:flex;align-items:center;gap:6px;margin-top:13px;position:relative}
+  .cycle .cyc-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .cycle .dot{width:100%;height:5px;border-radius:99px;background:#232B3B}
+  .cycle .dot.filled{background:var(--accent)}
+  .cycle .dot.now{background:var(--accent);box-shadow:0 0 0 3px rgba(255,122,26,.2)}
+  .cycle .cyc-label{font-size:10px;color:var(--txt3)}
+  .cycle .cyc-label.hot{color:var(--accent2);font-weight:600}
+
+  /* ===== 段落 ===== */
+  .sec-title{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--txt2);margin:16px 2px 10px;letter-spacing:.5px}
+  .sec-title .tag{font-size:10.5px;color:var(--txt3);border:1px solid var(--line);border-radius:99px;padding:1px 8px;font-weight:500}
+  .sec-title .opt{font-size:10.5px;color:var(--accent2);border:1px solid rgba(255,122,26,.4);border-radius:99px;padding:1px 8px;font-weight:500}
+  .sec-title .count{font-size:12px;color:var(--txt3);margin-left:auto;font-weight:500}
+
+  /* ===== 工具栏 ===== */
+  .tools{display:flex;gap:8px;margin:2px 0 12px}
+  .tool-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px;border-radius:12px;border:1px dashed rgba(255,122,26,.45);background:var(--accent-soft);color:var(--accent2);font-size:13.5px;font-weight:600;cursor:pointer}
+  .tool-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .tool-btn.ghost{border:1px dashed var(--line);background:var(--card);color:var(--txt3)}
+  .tool-btn:active{opacity:.8}
+
+  /* ===== 动作卡 ===== */
+  .ex{background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin-bottom:10px;overflow:hidden}
+  .ex-head{display:flex;align-items:center;gap:9px;padding:12px 13px;cursor:pointer}
+  .ex-num{width:24px;height:24px;border-radius:8px;background:var(--card2);color:var(--txt3);font-size:12.5px;font-weight:600;display:flex;align-items:center;justify-content:center;flex:none;font-family:"Barlow Condensed",sans-serif}
+  .ex.on .ex-num{background:var(--accent);color:#fff}
+  .ex-main{flex:1;min-width:0}
+  .ex-name{font-size:15px;font-weight:650}
+  .ex-sub{font-size:11.5px;color:var(--txt3);margin-top:1px;display:flex;gap:8px;align-items:center}
+  .ex-sub .mus{color:var(--txt2)}
+  .ex-sets-badge{flex:none;background:var(--card2);border:1px solid var(--line);color:var(--accent2);border-radius:99px;padding:3px 9px;font-size:12px;font-weight:600;font-family:"Barlow Condensed",sans-serif;letter-spacing:.5px}
+  .ex-head-actions{display:flex;gap:6px;flex:none}
+  .icon-btn{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--bg2);display:flex;align-items:center;justify-content:center;color:var(--txt3);cursor:pointer;flex:none}
+  .icon-btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .icon-btn:active{background:var(--card2)}
+  .icon-btn.del{color:var(--txt3)}
+  .icon-btn.del:hover{color:var(--danger);border-color:rgba(230,90,90,.4)}
+  .ex-arrow{margin-left:2px;color:var(--txt3);transition:transform .2s;flex:none}
+  .ex-arrow svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;display:block}
+  .ex.open .ex-arrow{transform:rotate(180deg)}
+
+  .ex-body{display:none;border-top:1px solid var(--line);padding:0 13px}
+  .ex.open .ex-body{display:block}
+  .tips{padding:10px 0 6px}
+  .tips .tip{display:flex;gap:8px;font-size:12.8px;color:var(--txt2);margin-bottom:6px;line-height:1.6}
+  .tips .tip::before{content:"";flex:none;width:4px;height:4px;border-radius:99px;background:var(--accent);margin-top:8px}
+  .tips .tip.key{color:var(--txt)}
+  .tips .tip.key::before{background:var(--accent);box-shadow:0 0 0 3px rgba(255,122,26,.18)}
+
+  /* 组表格 */
+  .sets{display:flex;align-items:center;gap:7px;padding:9px 0 11px;border-top:1px dashed var(--line)}
+  .set-row{flex:1;display:flex;align-items:center;justify-content:center;gap:6px}
+  .set-label{font-size:11px;color:var(--txt3)}
+  .set-input{width:100%;min-width:0;background:var(--bg2);border:1px solid var(--line);border-radius:9px;color:var(--txt);font-size:14.5px;text-align:center;padding:8px 2px;font-family:"Barlow Condensed",sans-serif;font-weight:600;outline:none;transition:border .15s}
+  .set-input:focus{border-color:var(--accent)}
+  .set-input::placeholder{color:#4A5462;font-weight:500}
+  .set-done{flex:none;width:38px;height:38px;border-radius:11px;border:1.5px solid var(--line);background:var(--bg2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s}
+  .set-done svg{width:17px;height:17px;stroke:#4A5462;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  .set-done.on{background:var(--ok);border-color:var(--ok)}
+  .set-done.on svg{stroke:#06251A}
+  .set-col{font-size:10.5px;color:var(--txt3);text-align:center}
+  .sets-head{display:flex;gap:7px;padding:10px 0 6px;align-items:center}
+
+  /* ===== 结束按钮 ===== */
+  .finish{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;border:none;border-radius:15px;background:var(--ok);color:#06251A;font-size:15.5px;font-weight:700;padding:15px;margin-top:8px;cursor:pointer;transition:opacity .15s;letter-spacing:1px}
+  .finish svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  .finish:active{opacity:.85}
+
+  /* ===== 底部导航 ===== */
+  nav.tabbar{position:fixed;bottom:0;left:0;right:0;background:rgba(11,14,20,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);z-index:50}
+  nav.tabbar .inner{max-width:520px;margin:0 auto;display:flex;height:60px}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--txt3);cursor:pointer;transition:color .15s}
+  .tab svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .tab span{font-size:10.5px;font-weight:500;letter-spacing:1px}
+  .tab.on{color:var(--accent)}
+
+  /* ===== 历史 ===== */
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:14px}
+  .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .cal-head .month{font-size:15px;font-weight:700}
+  .cal-nav{display:flex;gap:6px}
+  .cal-nav button{width:32px;height:32px;border-radius:10px;border:1px solid var(--line);background:var(--bg2);color:var(--txt2);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+  .cal-nav button:active{background:var(--card2)}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal-week{font-size:10.5px;color:var(--txt3);text-align:center;padding:4px 0}
+  .cal-cell{aspect-ratio:1;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;color:var(--txt);position:relative;cursor:default}
+  .cal-cell.blank{visibility:hidden}
+  .cal-cell.other{color:var(--txt3)}
+  .cal-cell .mark{position:absolute;bottom:3px;width:5px;height:5px;border-radius:99px;background:var(--accent)}
+  .cal-cell.own .mark{background:var(--ok)}
+  .cal-legend{display:flex;gap:14px;margin-top:10px;font-size:11px;color:var(--txt3);flex-wrap:wrap}
+  .cal-legend i{display:inline-block;width:7px;height:7px;border-radius:99px;background:var(--accent);margin-right:5px}
+  .cal-legend .lg-own i{background:var(--ok)}
+
+  .rec{display:flex;align-items:center;gap:11px;padding:11px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+  .rec:last-child{border-bottom:none}
+  .rec-badge{width:40px;height:40px;border-radius:12px;background:var(--accent-soft);display:flex;align-items:center;justify-content:center;flex:none;font-size:12px;font-weight:700;color:var(--accent2)}
+  .rec-main{flex:1;min-width:0}
+  .rec-title{font-size:14px;font-weight:600}
+  .rec-sub{font-size:11.5px;color:var(--txt3);margin-top:1px}
+  .rec-right{text-align:right;flex:none}
+  .rec-pct{font-size:16px;font-weight:700;color:var(--accent2)}
+  .rec-status{font-size:11px;color:var(--txt3)}
+  .rec-status.fin{color:var(--ok)}
+  .rec-del{flex:none;width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--bg2);color:var(--txt3);display:flex;align-items:center;justify-content:center;cursor:pointer}
+  .rec-del svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .rec-del:active{color:var(--danger);border-color:rgba(230,90,90,.4)}
+  .empty{text-align:center;color:var(--txt3);font-size:13px;padding:26px 10px}
+
+  /* ===== 统计 ===== */
+  .stat-head{display:flex;gap:12px;margin-bottom:14px}
+  .streak{flex:1.2;border-radius:16px;background:linear-gradient(150deg,#241D12,#181510);border:1px solid rgba(255,176,32,.35);padding:15px;position:relative;overflow:hidden}
+  .streak::before{content:"";position:absolute;inset:0;background:radial-gradient(200px 120px at 20% -30%,rgba(255,176,32,.25),transparent 70%)}
+  .streak .lbl{font-size:12px;color:#D8B36A;position:relative}
+  .streak .val{font-size:42px;font-weight:700;color:#FFD97A;line-height:1.1;margin-top:4px;position:relative}
+  .streak .val span{font-size:15px;color:#D8B36A;font-weight:600;margin-left:3px}
+  .streak .sub{font-size:11px;color:#9C8555;margin-top:3px;position:relative}
+  .stat-total{flex:1;border-radius:16px;background:var(--card);border:1px solid var(--line);padding:15px}
+  .stat-total .lbl{font-size:12px;color:var(--txt3)}
+  .stat-total .val{font-size:30px;font-weight:700;color:var(--txt);line-height:1.15;margin-top:3px}
+  .stat-total .val span{font-size:14px;color:var(--txt3);font-weight:500}
+  .grid4{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 14px}
+  .kpi .lbl{font-size:11.5px;color:var(--txt3)}
+  .kpi .val{font-size:24px;font-weight:700;margin-top:3px;color:var(--txt)}
+  .kpi .val small{font-size:12px;color:var(--txt3);font-weight:500;margin-left:2px}
+  .dist-row{display:flex;align-items:center;gap:11px;padding:8px 0}
+  .dist-name{width:52px;font-size:13px;color:var(--txt2);flex:none}
+  .dist-bar{flex:1;height:9px;border-radius:99px;background:var(--card2);overflow:hidden}
+  .dist-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width .4s ease}
+  .dist-num{width:76px;text-align:right;font-size:12.5px;color:var(--txt3);flex:none}
+  .dist-num b{color:var(--txt2);font-weight:600}
+
+  /* ===== 计划 ===== */
+  .plan-day{margin-bottom:12px}
+  .plan-head{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:14px;cursor:pointer}
+  .plan-head .ph-idx{width:30px;height:30px;border-radius:10px;background:var(--accent);color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;flex:none;font-family:"Barlow Condensed",sans-serif;font-size:17px}
+  .plan-main{flex:1}
+  .plan-title{font-size:15px;font-weight:700}
+  .plan-sub{font-size:11.5px;color:var(--txt3);margin-top:1px}
+  .plan-arrow{color:var(--txt3);transition:transform .2s}
+  .plan-arrow svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;display:block}
+  .plan-day.open .plan-arrow{transform:rotate(180deg)}
+  .plan-body{display:none;background:var(--card);border:1px solid var(--line);border-top:none;border-radius:0 0 14px 14px;padding:4px 14px 12px}
+  .plan-day.open .plan-body{display:block}
+  .plan-item{display:flex;gap:9px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px;align-items:baseline}
+  .plan-item:last-child{border-bottom:none}
+  .plan-item .pi-n{font-family:"Barlow Condensed",sans-serif;color:var(--accent2);font-weight:600;flex:none;font-size:14px}
+  .plan-item .pi-t{flex:1;color:var(--txt)}
+  .plan-item .pi-s{flex:none;color:var(--txt2);font-size:12px}
+  .plan-note{font-size:12px;color:var(--txt3);line-height:1.7;background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:11px 13px;margin-top:12px}
+
+  /* ===== 我的 ===== */
+  .me-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;margin-bottom:12px}
+  .me-card h3{font-size:14.5px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .me-card h3 svg{width:15px;height:15px;stroke:var(--accent);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .me-card p,.me-card li{font-size:12.8px;color:var(--txt2);line-height:1.75}
+  .me-card ul{padding-left:16px}
+  .me-card li::marker{color:var(--accent)}
+  .btn-danger{width:100%;border:1px solid rgba(230,90,90,.4);background:rgba(230,90,90,.08);color:var(--danger);border-radius:13px;padding:12px;font-size:14px;font-weight:600;cursor:pointer}
+  .btn-danger:active{background:rgba(230,90,90,.16)}
+  .src{font-size:11.5px;color:var(--txt3);margin-top:4px}
+
+  /* ===== 弹窗 ===== */
+  .mask{position:fixed;inset:0;background:rgba(5,7,10,.72);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+  .modal{width:100%;max-width:480px;background:var(--bg2);border:1px solid var(--line);border-top-left-radius:18px;border-top-right-radius:18px;padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:88vh;overflow-y:auto}
+  .modal-title{font-size:16px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .form-row{margin-bottom:11px}
+  .form-row label{display:block;font-size:12px;color:var(--txt3);margin-bottom:5px}
+  .form-input{width:100%;background:var(--card);border:1px solid var(--line);border-radius:10px;color:var(--txt);font-size:14px;padding:10px 12px;outline:none;font-family:inherit}
+  .form-input:focus{border-color:var(--accent)}
+  .form-input.num{font-family:"Barlow Condensed",sans-serif;font-weight:600}
+  select.form-input{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--txt3) 50%),linear-gradient(135deg,var(--txt3) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat}
+  textarea.form-input{resize:vertical;min-height:100px;line-height:1.65}
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .form-hint{font-size:11px;color:var(--txt3);margin-top:4px}
+  .modal-foot{display:flex;gap:9px;margin-top:15px}
+  .modal-foot button{flex:1;padding:12px;border-radius:12px;font-size:14px;font-weight:600;border:none;cursor:pointer}
+  .modal-foot button:active{opacity:.85}
+  #m-cancel{background:var(--card2);color:var(--txt2)}
+  #m-save{background:var(--accent);color:#fff}
+  #m-del{flex:0 0 auto;background:rgba(230,90,90,.1);color:var(--danger);border:1px solid rgba(230,90,90,.35);padding:12px 15px;display:none}
+
+  /* ===== 训练详情 ===== */
+  .detail-overview{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 13px}
+  .do-row{display:flex;justify-content:space-between;font-size:13px;color:var(--txt2);padding:3px 0}
+  .do-row b{color:var(--txt);font-weight:600}
+  .detail-ex{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 13px;margin-bottom:9px}
+  .de-head{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .de-idx{width:20px;height:20px;border-radius:6px;background:var(--card2);color:var(--txt3);display:flex;align-items:center;justify-content:center;font-size:11.5px;flex:none;font-family:"Barlow Condensed",sans-serif}
+  .de-name{flex:1;font-size:13.5px;font-weight:600}
+  .de-sets{font-size:12px;color:var(--accent2);font-family:"Barlow Condensed",sans-serif;font-weight:600}
+  .de-set{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--txt2);padding:4px 0;border-top:1px dashed var(--line)}
+  .de-set:first-of-type{border-top:none}
+  .de-set .ds-n{width:18px;color:var(--txt3);flex:none;font-family:"Barlow Condensed",sans-serif;font-weight:600}
+  .de-set .ds-w{flex:1}
+  .de-set .ds-r{flex:1}
+  .de-set .ds-st{color:var(--txt3)}
+  .de-set .ds-st.ok{color:var(--ok);font-weight:600}
+  .data-actions{display:flex;gap:9px;margin-top:2px}
+  .btn-data{flex:1;border:1px solid var(--line);background:var(--card2);color:var(--txt);border-radius:13px;padding:12px;font-size:14px;font-weight:600;cursor:pointer}
+  .btn-data:active{background:var(--bg2)}
+
+  @media (min-width:700px){
+    .mask{align-items:center}
+    .modal{border-radius:18px}
+    nav.tabbar .inner{height:64px}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===== 今日视图 ===== -->
+  <section class="view" id="view-today">
+    <div class="topbar">
+      <div>
+        <h1>今日训练</h1>
+        <div class="sub" id="today-date"></div>
+      </div>
+      <div class="logo">
+        <div class="logo-badge"><svg viewBox="0 0 24 24"><path d="M6.5 12h11M9 8l-3 4 3 4M15 8l3 4-3 4"/></svg></div>
+        <span class="num" style="font-size:14px;font-weight:700;letter-spacing:1px;color:var(--txt2)">SPLIT·5</span>
+      </div>
+    </div>
+
+    <div class="daytabs" id="daytabs"></div>
+    <div class="daytab-hint">点击标签可切换今日训练部位</div>
+
+    <div id="rest-hero" style="display:none"></div>
+
+    <div id="today-main">
+      <div class="hero" id="hero">
+        <div class="hero-top">
+          <div class="hero-day"><span class="pill" id="hero-pill"></span></div>
+          <div class="hero-meta">
+            <div class="date" id="hero-date"></div>
+            <div class="round" id="hero-round"></div>
+          </div>
+        </div>
+        <div class="hero-focus" id="hero-focus"></div>
+        <div class="timer-row">
+          <div class="timer"><span class="num" id="timer-val">00:00</span><span class="unit">min</span></div>
+          <div class="prog-num"><span class="t">进度</span><span id="prog-pct">0%</span></div>
+        </div>
+        <div class="timer-ctrl" id="timer-ctrl"></div>
+        <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+        <div class="prog-label"><span class="done" id="prog-done">0 组已完成</span><span id="prog-total">共 0 组</span></div>
+        <div class="cycle" id="cycle"></div>
+      </div>
+      <div class="tools">
+        <button class="tool-btn" id="btn-add">
+          <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>添加动作
+        </button>
+        <button class="tool-btn ghost" id="btn-reset-plan">
+          <svg viewBox="0 0 24 24"><path d="M4 5h16M6 5v14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V5M9 5V3h6v2"/></svg>恢复默认
+        </button>
+      </div>
+      <div id="variant-switch"></div>
+      <div id="ex-list"></div>
+      <button class="finish" id="btn-finish">
+        <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+        <span id="finish-label">结束训练</span>
+      </button>
+    </div>
+  </section>
+
+  <!-- ===== 历史视图 ===== -->
+  <section class="view" id="view-history">
+    <div class="topbar"><h1>历史</h1></div>
+    <div class="panel">
+      <div class="cal-head">
+        <span class="month" id="cal-month"></span>
+        <div class="cal-nav">
+          <button id="cal-prev" aria-label="上个月">‹</button>
+          <button id="cal-next" aria-label="下个月">›</button>
+        </div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="cal-legend"><span><i></i>训练日</span><span class="lg-own"><i></i>已完成</span></div>
+    </div>
+    <div class="sec-title" style="margin-top:2px">记录<span class="count" id="rec-count"></span></div>
+    <div id="rec-list" style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px 13px"></div>
+  </section>
+
+  <!-- ===== 统计视图 ===== -->
+  <section class="view" id="view-stats">
+    <div class="topbar"><h1>统计</h1></div>
+    <div class="stat-head">
+      <div class="streak">
+        <div class="lbl">当前连续打卡</div>
+        <div class="val num" id="st-streak">0<span>天</span></div>
+        <div class="sub" id="st-streak-sub">最长连续：0 天</div>
+      </div>
+      <div class="stat-total">
+        <div class="lbl">总训练次数</div>
+        <div class="val num" id="st-total">0<span>次</span></div>
+      </div>
+    </div>
+    <div class="grid4">
+      <div class="kpi"><div class="lbl">完成率</div><div class="val num" id="st-rate">0<small>%</small></div></div>
+      <div class="kpi"><div class="lbl">总训练时长</div><div class="val num" id="st-dur">0<small>min</small></div></div>
+      <div class="kpi"><div class="lbl">训练天数</div><div class="val num" id="st-days">0<small>天</small></div></div>
+      <div class="kpi"><div class="lbl">累计完成组数</div><div class="val num" id="st-sets">0<small>组</small></div></div>
+    </div>
+    <div class="sec-title" style="margin-top:4px">训练日分布</div>
+    <div class="panel" style="padding-top:6px;padding-bottom:8px" id="st-dist"></div>
+  </section>
+
+  <!-- ===== 计划视图 ===== -->
+  <section class="view" id="view-plan">
+    <div class="topbar"><h1>训练计划</h1></div>
+    <div class="plan-note" style="margin-top:0">
+      五分化循环：<b style="color:var(--accent2)">胸 → 背 → 腿 → 肩 → 手臂 → 休息</b>，练 5 休 1。
+      内容整理自「谭成义·私教跟练系列」胸 / 背 / 腿 / 肩 / 手臂 / 腹肌训练笔记。
+    </div>
+    <div id="plan-list" style="margin-top:12px"></div>
+    <div class="plan-note">
+      <b style="color:var(--txt2)">通用原则：</b>每组把向心收缩做到完全收紧，离心控制、不"差不多就行"；先保证动作质量，再谈重量；
+      热身越充分，主项效率越高；练得稳、练得久，胜过走得快。
+    </div>
+  </section>
+
+  <!-- ===== 我的视图 ===== -->
+  <section class="view" id="view-me">
+    <div class="topbar"><h1>我的</h1></div>
+    <div class="me-card">
+      <h3><svg viewBox="0 0 24 24"><path d="M4 19.5A6.5 6.5 0 0 1 10.5 13h3A6.5 6.5 0 0 1 20 19.5"/><circle cx="12" cy="7.5" r="4"/></svg>训练者</h3>
+      <p>邵贝 · 五分化训练者</p>
+    </div>
+    <div class="me-card">
+      <h3><svg viewBox="0 0 24 24"><path d="M6 4v16M18 4v16M6 12h12"/></svg>循环说明</h3>
+      <p>五个训练日轮流进行，练完手臂日休息一天再进入下一轮。腿日遵循低强度、高频原则，正式组控制在 10–15 组；
+        手臂日提供「完整版（一周一次）」与「超级组版（二练/补充，约 30 分钟）」两套方案，可在今日页切换。</p>
+    </div>
+    <div class="me-card">
+      <h3><svg viewBox="0 0 24 24"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>数据说明</h3>
+      <p>训练记录（勾选组数、重量、次数、时长）保存在本机浏览器中，不会上传。手机和电脑之间不会自动同步，换设备可用下方的「导出 / 导入」手动同步。</p>
+    </div>
+    <div class="me-card">
+      <h3><svg viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6"/><path d="M12 3l7 3v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z"/></svg>GitHub 云同步</h3>
+      <div class="form-row">
+        <label>GitHub 用户名</label>
+        <input class="form-input" id="g-owner" placeholder="你的 GitHub 用户名">
+      </div>
+      <div class="form-row">
+        <label>仓库名</label>
+        <input class="form-input" id="g-repo" placeholder="如 workout-data（建议私有仓库）">
+      </div>
+      <div class="form-row">
+        <label>Access Token</label>
+        <input class="form-input" id="g-token" type="password" placeholder="ghp_…">
+        <div class="form-hint">在 GitHub → Settings → Developer settings → Personal access tokens 创建，勾选 repo 权限</div>
+      </div>
+      <div class="form-row">
+        <label>数据文件路径</label>
+        <input class="form-input num" id="g-path" value="data.json">
+      </div>
+      <div class="data-actions">
+        <button class="btn-data" id="g-upload">上传到 GitHub</button>
+        <button class="btn-data" id="g-download">从 GitHub 拉取</button>
+      </div>
+      <p class="src" id="g-status" style="margin-top:8px">训练数据会作为文件保存到你的仓库里，跨设备随时同步。Token 仅保存在本机浏览器，不会上传。</p>
+    </div>
+    <div class="me-card">
+      <h3><svg viewBox="0 0 24 24"><path d="M4 5h16M6 5v14a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V5M9 5V3h6v2"/></svg>数据管理</h3>
+      <div class="data-actions">
+        <button class="btn-data" id="btn-export">导出数据</button>
+        <button class="btn-data" id="btn-import">导入数据</button>
+      </div>
+      <input type="file" id="file-import" accept=".json,application/json" style="display:none">
+      <p class="src" style="margin-top:8px">导出生成备份文件；在另一台设备上导入即可同步训练记录。<br>清除数据不可恢复，请谨慎操作。</p>
+      <button class="btn-danger" id="btn-reset" style="margin-top:10px">清除全部训练数据</button>
+    </div>
+  </section>
+
+  <nav class="tabbar">
+    <div class="inner">
+      <div class="tab on" data-view="today">
+        <svg viewBox="0 0 24 24"><path d="M12 3l8 6v12H4V9l8-6z"/><path d="M9 21v-6h6v6"/></svg>
+        <span>今日</span>
+      </div>
+      <div class="tab" data-view="history">
+        <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M8 15l3 3 5-6"/></svg>
+        <span>历史</span>
+      </div>
+      <div class="tab" data-view="stats">
+        <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>
+        <span>统计</span>
+      </div>
+      <div class="tab" data-view="plan">
+        <svg viewBox="0 0 24 24"><path d="M5 3h14a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+        <span>计划</span>
+      </div>
+      <div class="tab" data-view="me">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="4"/><path d="M4 19.5A6.5 6.5 0 0 1 10.5 13h3A6.5 6.5 0 0 1 20 19.5"/></svg>
+        <span>我的</span>
+      </div>
+    </div>
+  </nav>
+</div>
+
+<!-- ===== 动作编辑弹窗 ===== -->
+<div class="mask" id="mask" style="display:none">
+  <div class="modal">
+    <div class="modal-title" id="modal-title">编辑动作</div>
+    <div class="form-row">
+      <label>动作名称</label>
+      <input class="form-input" id="f-name" placeholder="如：杠铃卧推">
+    </div>
+    <div class="form-row">
+      <label>目标肌群</label>
+      <input class="form-input" id="f-mus" placeholder="如：胸大肌">
+    </div>
+    <div class="form-grid">
+      <div class="form-row">
+        <label>组数</label>
+        <input class="form-input num" id="f-sets" type="text" inputmode="numeric" placeholder="4">
+      </div>
+      <div class="form-row">
+        <label>次数</label>
+        <input class="form-input num" id="f-reps" type="text" inputmode="text" placeholder="10~12">
+      </div>
+    </div>
+    <div class="form-row">
+      <label>所在阶段</label>
+      <select class="form-input" id="f-phase">
+        <option value="warm">热身与激活</option>
+        <option value="main">正式训练</option>
+        <option value="abs">核心附加 · 可选</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>动作要领（每行一条）</label>
+      <textarea class="form-input" id="f-tips" placeholder="每行写一条要领，如：&#10;吸满气、腰贴凳面、开肋"></textarea>
+      <div class="form-hint">每行一条，可自由修改、增删</div>
+    </div>
+    <div class="modal-foot">
+      <button id="m-del">删除动作</button>
+      <button id="m-cancel">取消</button>
+      <button id="m-save">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 训练详情弹窗 ===== -->
+<div class="mask" id="mask-detail" style="display:none">
+  <div class="modal">
+    <div class="modal-title" id="detail-title">训练详情</div>
+    <div id="detail-body"></div>
+    <div class="modal-foot">
+      <button id="m-d-close" style="background:var(--card2);color:var(--txt2)">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= 数据 ================= */
+var CYCLES = ['chest','back','legs','shoulder','arms'];
+var CYCLE_NAMES = {chest:'胸',back:'背',legs:'腿',shoulder:'肩',arms:'手臂'};
+
+var DAYS = {
+  chest: {
+    id:'chest', name:'胸日', en:'CHEST', focus:'胸大肌 · 三角肌前束', color:'#FF7A1A',
+    note:'本日顺序：下胸 → 中下胸 → 上胸。练胸效率的核心是前侧扩张（挺胸能力），前纵隔打开是练胸最重要的点。',
+    warm: [
+      {name:'前纵隔打开 · 泡沫轴对抗', mus:'胸廓扩张', sets:2, reps:'8~12',
+       tips:['胸口压住泡沫轴，胸廓做扩张对抗，自动进入挺胸状态','吸满气做对抗，吐气为"放凉"；解决不知如何挺胸的问题','进阶：抬起膝盖增加难度；胸闷时先吸满气再对抗','核心误区：挺腰 ≠ 挺胸，扩张的是前纵隔，不是腰部代偿']},
+      {name:'TYW 肩胛激活', mus:'下斜方肌 · 肩胛', sets:2, reps:'10',
+       tips:['只动肩和肩胛，脊柱保持不动（避免激活竖脊肌跑偏）','Y 字：大拇指朝上向上抬，能抬高就抬高，不适则少量多次','可垫高泡沫轴增大行程：膝盖着地、身体稍前推']},
+      {name:'弹力带绕肩', mus:'肩关节升温', sets:2, reps:'15',
+       tips:['幅度：下巴正前方 → 肩的正后方','弹力带始终不松掉，保持张力状态','不要顶腰完成动作；热到微微发喘即可','理念：练得稳、练得久 > 走得快']}
+    ],
+    main: [
+      {name:'双杠臂屈伸（挺胸版）', mus:'下胸 · 三头', sets:4, reps:'8~12',
+       tips:['挺胸、屈髋、重心微微前倾 → 刺激下沿与外沿','中立位刺激中胸（非目标）；前倾位张力不松','核心维持姿势，属复合动作；肩有压力则退阶','退阶：辅助双杠 / 小龙门架夹胸（向腹股沟位置夹）','吸满气，存气越多前侧扩张越好、胸受力越好']},
+      {name:'坐姿平推', mus:'中胸 · 下胸', sets:4, reps:'10~12',
+       tips:['建议半握、靠近尺侧（手腕内侧），胸受力更好','吸满气、腰贴凳面、开肋（下胸长在肋骨上）','不需要完全推出去，推至收紧即可，保持持续张力','推直后持续用力推，增强肌肉收紧能力与质量','左胸偏高时，身体稍向右侧调整']},
+      {name:'上斜推胸', mus:'上胸 · 锁骨区', sets:4, reps:'10~12',
+       tips:['贴腰、收肋（无需吸气），直接吐气直接推','手抬高，动作趋向于上胸肌纤维平面','不要回放太多，避免手臂代偿；放下去时握宽一点','收肋减少下胸发力，实现相对孤立，增强胸间立体感','到位时上胸筋脉爆起即激活；做完一组绷住 10 秒再休息（拉丝技巧）']},
+      {name:'绳索夹上胸', mus:'上胸 · 胸间', sets:4, reps:'12~15',
+       tips:['腰贴住、收肋，往鼻子正前方夹','滑轮初始位置大致在膝盖位（平行过来）','放回幅度注意肋骨位置，不要放太多','每一下都加紧；不要挺胸；放回时不要停顿','先找收缩感再做离心，降低幅度有时才是真正练到目标肌群']},
+      {name:'反手前平举', mus:'三角肌前束', sets:4, reps:'12~15',
+       tips:['绳索滑轮调至最低，反手从下往上抬','大臂外旋，使前束预先拉长，更利于刺激与增肌','抬至与肩同高，不过高不过低','躯干稳定是重中之重：防止下放时肩胛骨前倾','将每次训练视为最后一次，提高专注度']}
+    ],
+    abs: [
+      {name:'悬垂举腿', mus:'腹直肌下部', sets:3, reps:'8~12',
+       tips:['三种握法：直接抓握（最易）/ 悬垂带（中立）/ 手撑（最难）','收肋模式：气吐干净再做，练收紧肋骨','鼓腹模式：吸气至腹部绷住不吐气直接卷，腹直肌刺激极强','下放不下到底，避免髋屈肌代偿（腿酸）','维持骨盆后倾，抬腿收紧腹直肌']},
+      {name:'卷腹', mus:'腹直肌 · 腹外斜肌', sets:3, reps:'12~15',
+       tips:['悬垂举腿做不了时的降阶选择；腿伸越直越难','鼓腹模式：先顶起肚子再卷；肘的力往上走','幅度取中段：起不要太高、下不要到底','易开肋者：吐气干净、不鼓肚子直接做','强度不足选下斜卷腹；训练后海豹式拉伸']}
+    ]
+  },
+  back: {
+    id:'back', name:'背日', en:'BACK', focus:'背阔肌 · 中背 · 肩胛', color:'#3AC7E0',
+    note:'练背最重要原则：肩胛骨稳定 + 躯干稳定，再活动肩部。练背阔肌规避肩胛活动，练菱形肌/中斜方规避脊柱运动。',
+    warm: [
+      {name:'泡沫轴推起（肩胛外展）', mus:'前锯肌 · 核心', sets:2, reps:'10',
+       tips:['膝盖撑地、小臂置于泡沫轴上，向前推起并回位','躯干重心不动，仅肩部运动；肩胛骨顶起（外展）','重心前移增加难度；幅度大 ≠ 效果好，避免脊柱稳定丢失','手腕不适者替代：规避手部参与（健腹轮则参与手部）']},
+      {name:'跪姿肘屈伸', mus:'前锯肌 · 肩胛', sets:2, reps:'10',
+       tips:['与泡沫轴模式一致：吸气保持肩胛外展，做肘屈肘伸','退阶：重心后调；进阶：重心前移','肩关节不适：减小幅度或做静态保持','对前锯肌要求高，先吸气扩张胸廓再做动作']}
+    ],
+    main: [
+      {name:'直臂下压', mus:'背阔肌（下背）', sets:2, reps:'12',
+       tips:['向后站、微俯身；手腕扣起；半握感受更佳','发力方向向下压，不是向后缩','每次必须收紧肌肉，再考虑其他','刻意深吸气使胸廓外扩预先发力，快速吐气','不要放到底，放太高则张力消失']},
+      {name:'单手绳索划船', mus:'背阔肌 · 中背', sets:4, reps:'10~12',
+       tips:['滑轮从上往斜下幅度大；水平面幅度小、适合肩屈受限者','腿蹬住，手肘撑住把身体向远端推 → 胸曲回中立、背已预先发力','放回保持张力；向后幅度越大越好，但避免肩胛骨内收或手上提','抗侧屈：身体摆正，肘仍向内收','先吸满气使胸廓扩张、背阔肌预先发力','组间休息 2–3 分钟；持续张力好时肌肉摸上去像石头一样硬']},
+      {name:'对握高位下拉', mus:'背阔肌（外延）', sets:4, reps:'10~12',
+       tips:['中距离对握，轻微外旋（45° 内），肘部自动内收','姿态：中立位微微前倾，防止后仰（后仰会减小肩屈幅度）','下拉幅度取决于肩胛骨控制；末端主动内收肩胛骨','离心阶段切勿放到底，避免肩胛骨位置松散','螺丝理论：臀部（下端）与肩胛骨（上端）同时稳定并发力','重量以能收紧为准，切勿过度追求重量']},
+      {name:'坐姿绳索划船', mus:'背阔肌 · 中背', sets:4, reps:'10~12',
+       tips:['双手优于单手：代偿受限、对肩胛控制要求更高、效率高','准备：脚蹬住后侧链发力稳定骨盆，吸气背阔肌预先发力','从微屈位开始，向肚脐方向拉动','脊柱中立：既不过度挺胸，也不过度弯腰','肩胛保持稳定避免后缩；放回留有余地，不彻底放到底','肩胛前倾则背部松弛：通过背阔肌是否发力验证姿势']},
+      {name:'绳索全区间下压（单手）', mus:'背阔肌', sets:3, reps:'10~12',
+       tips:['手腕保持微外旋、角度全程不变，避免内旋','躯干微后仰（约 20°），禁止旋转与侧屈','向下拉，不是向后拉（向后拉则手臂代偿过多）','收紧位做短暂小停顿，代表充分收缩','先调整到位再做动作；躯干稳定后重心整体向后推']},
+      {name:'龙门架肩胛后缩', mus:'中背 · 菱形肌', sets:3, reps:'12',
+       tips:['胸口贴靠凳子使躯干更平；肩胛后缩为主','躯干稳定、脊柱不动：避免脊柱伸代偿和顶肋','幅度小不代表错误，是真正的后缩能力体现','在保持脊柱稳定的前提下逐步增大后缩幅度','不仅练菱形肌，侧面看对原肌刺激也很好']}
+    ],
+    abs: [
+      {name:'健腹轮（跪姿）', mus:'腹直肌 · 前锯肌 · 躯干稳定', sets:3, reps:'8~10',
+       tips:['推荐基础型健腹轮（非肘撑款），间接锻炼手腕能力','起始：肩胛骨顶起（前锯肌预先发力），深吸气保持胸廓充盈','前推过程肩胛骨保持稳定不后缩，维持在一个平面','手腕必须顶起，不可塌陷','做自己能控制的幅度：小幅度高质量优于大幅度失控','动作打开后纵隔，直接关联背阔肌扩张与生长上限']}
+    ]
+  },
+  legs: {
+    id:'legs', name:'腿日', en:'LEGS', focus:'大腿前/后侧 · 内收肌 · 小腿 · 髋', color:'#A78BFA',
+    note:'核心思路：高频率、低强度。正式组建议 10–15 组（避免过量）。下肢能力依赖髋关节功能，先开发髋。',
+    warm: [
+      {name:'青蛙式', mus:'髋关节 · 骨盆', sets:2, reps:'10',
+       tips:['肘撑地、腿打开、骨盆前倾（撅屁股）','向后推保持骨盆前倾，避免骨盆翻转（腰部代偿）','膝盖对抗地面施压，使力传导至骨盆','前后幅度尽可能大但维持姿势；顶端稍作停顿']},
+      {name:'髋内旋（青蛙位）', mus:'髋关节内旋', sets:2, reps:'10',
+       tips:['双侧同时进行，避免单侧代偿（侧屈、旋转），效率高','核心要求：脊柱完全不动，仅活动髋关节','腰顶起（后倾）向前推至紧绷，两侧同时做髋内旋','大腿根（髋部）酸胀感明显；两组后髋部感觉轻松']},
+      {name:'伟大者生长', mus:'臀 · 大腿后侧', sets:2, reps:'10/侧',
+       tips:['前脚前放、后腿伸直、同侧手撑地（左腿在前则右手撑地）','眼看手指方向，身体向上延长（非向后），旋转躯干','支撑腿侧臀部及大腿后侧有明显拉伸感']},
+      {name:'90/90 拉伸', mus:'髋关节灵活性', sets:2, reps:'10',
+       tips:['前后腿均呈 90°；基础版做髋关节翻转','进阶：顶髋 → 坐回 → 翻至另一侧 → 顶髋 → 伸腿','外展位做深髋，臀部发力感更清晰','能轻松完成代表髋关节性能良好']}
+    ],
+    main: [
+      {name:'踮脚（站姿）', mus:'小腿 · 深层足肌', sets:3, reps:'12~15',
+       tips:['站姿优于坐姿：坐姿腓肠肌参与过多','前脚掌踩垫高物、后脚跟悬空','下放时脚趾与脚球抓地，前脚掌不翘起','上提向上向后发力（非向前向上）；躯干固定不屈膝代偿','新手首次 3 组即可，避免过度训练；脚后移更练前足']},
+      {name:'内收肌（仰卧内收机）', mus:'大腿内收肌群', sets:3, reps:'12~15',
+       tips:['靠背角度 15°–20°，不宜完全调平','腰贴住垫面避免反弓：发力时腰压住再夹','向心收缩必须夹紧，不可为堆次数忽略收紧','首次训练重量轻、幅度小（肌张力差易拉伤）','筋膜链斜连对侧腹/背肌：练右侧内收肌带动右侧腹收紧','多练内收肌可缓解腰部、膝盖问题，改善肋骨外翻']},
+      {name:'保加利亚蹲', mus:'大腿前侧 · 臀部', sets:3, reps:'10~12/侧',
+       tips:['推荐模式：下蹲避免屈髋，躯干直上直下（凳子不宜过高）','重心前移更全面；重心后移孤立后腿大腿前侧（要求能力高）','下蹲小腿垂直地面；起立方向向后上方','起立时后腿伸直，感受大腿根部（近髋处）发力','肌腱有压力则停止；稳定性不足不垫高直接地面做']},
+      {name:'哑铃直腿 / 罗马尼亚硬拉', mus:'大腿后侧（腘绳肌）', sets:3, reps:'10~12',
+       tips:['脚尖摆正甚至略内八，膝盖外八（形成拮抗，保持后侧张力）','起身不完全站直，留一点距离（后侧张力不松、骨盆稳定）','下放以后侧能承受的幅度为限，并非越低越好','收臀时膝盖不向前顶、重心不变：膝盖向后发力','直腿硬拉腰酸 → 换罗马尼亚硬拉（收臀 + 深吸气）','大部分人更适合以罗马尼亚硬拉为主']},
+      {name:'坐姿腿屈伸', mus:'大腿前侧（骨直肌）', sets:2, reps:'12~15',
+       tips:['膝盖朝前、微微向内（错误：膝盖外展）','以髋关节屈曲带动，区分屈髋与弯腰（脊柱不动）','膝盖不适时用三分之二行程：可激活骨内侧肌、减轻压力','与硬拉（后侧）交替训练，利于恢复与强度提高']},
+      {name:'俯身腿弯曲', mus:'大腿后侧（腘绳肌）', sets:2, reps:'12~15',
+       tips:['勾脚（防小腿抽筋）而非绷脚','内八（非外八）：提升后侧肌张力参与效率','不要求下到底，保留活动余量、底部易松弛失张力','全程收紧；脚位松动说明动作幅度已过','收腹维持骨盆稳定']}
+    ],
+    abs: [
+      {name:'卷腹', mus:'腹直肌', sets:2, reps:'12~15',
+       tips:['鼓腹模式：先顶起肚子再卷；肘的力往上走','幅度取中段，起太高腰部不适、无效','收肋过多者：吐气直接做，专注收肋能力','训练后海豹式拉伸：深吸气后伸展，吐气保持腹直肌张力']}
+    ]
+  },
+  shoulder: {
+    id:'shoulder', name:'肩日', en:'SHOULDER', focus:'三角肌前/中/后束', color:'#4D9FFF',
+    note:'肩活动度不足会影响胸、背、三头、二头所有推拉动作；训练优先薄弱部位。肩伸能力提升 → 前束张力改善 → 推胸、双杠、三头动作均受益。',
+    warm: [
+      {name:'弹力带环绕', mus:'肩关节升温', sets:1, reps:'20',
+       tips:['从肩正前方 → 肩正后方，幅度无需过大','回程时不可松掉张力（松弛磨损关节）','目的：升温、提升活动度、分泌滑液']},
+      {name:'TRX Y 字激活', mus:'肩胛 · 下斜方肌', sets:2, reps:'10',
+       tips:['脚越往前越难、越往后越简单','从起始位向上拉至 Y 字轨迹；下落不完全放到底','禁止顶腰；专注肩胛骨激活','无 TRX 替代：胸口抵泡沫轴、膝盖抬起，只动肩躯干不动']}
+    ],
+    main: [
+      {name:'俯身哑铃肩伸', mus:'三角肌后束', sets:4, reps:'15+',
+       tips:['轻重量（不可过重）；肩胛稳定下沉，不可前翻','从后束已发力的位置开始做肩伸，幅度极小','下落时不可完全放松','正手更孤立；内旋位后束感受更强、更孤立','做不到 15 次以上不加重量；核心是提高肩伸能力','肩伸受限常因前束紧张：提升肩伸可改善推胸、双杠、三头']},
+      {name:'坐姿反飞鸟', mus:'三角肌后束', sets:4, reps:'12~15',
+       tips:['后束效率最高的动作：重量重 + 行程长 + 感受强','座椅高度：手柄与肩齐平（过低则肩胛悬空、稳定性差）','身体微前倾或垂直，不可后仰','脚位靠前，减少脊柱代偿','手肘抬起不掉下（维持内旋）；向外延展，非向后缩','吸满气后稳定动作；关节不适时调整重量与幅度关系']},
+      {name:'哑铃推肩', mus:'三角肌中束 · 前束', sets:4, reps:'10~12',
+       tips:['凳子调至垂直地面更孤立；腰部难贴者可后仰','腰贴紧避免起腰（起腰则斜方肌参与、肩不孤立）','握法内扣建立肩部张力，手腕不松掉','下放至手腕到眼睛位置即可（能力不足时），不过度下放','不推到底留一点距离，可推更重；离心稍慢、向心稍快','起哑铃：放偏高位置（架子/膝盖），用腿去接，避免伤腰']},
+      {name:'侧平举', mus:'三角肌中束', sets:3, reps:'15~20',
+       tips:['身体微微前倾，避免后仰（后仰脊柱代偿偏离三角肌）','向身体前侧抬，效率更高（向侧方抬募集肌纤维更少）','尽量抬高，增强起点收缩效果','下落至大腿位置即止，勿下放至最低点','往远端延长发力，配合躯干稳定与胸廓扩张','把气吸满是关键，可维持稳定、避免不适']},
+      {name:'前平举', mus:'三角肌前束', sets:4, reps:'15~20',
+       tips:['起始位置：哑铃置大腿前侧（从更下方开始肩不发力）','抬高，下落至触碰大腿前侧即起；躯干不后仰','主动抑制屈肘，保持手臂伸直（屈肘力传导异常易引发问题）','正手更孤立前束；对握发力均衡、肩压小（肩不适切对握）','抬得越高起点收缩越紧、肌肉越立体','安排：2 组对握 + 2 组正手']}
+    ],
+    abs: [
+      {name:'悬垂举腿', mus:'腹直肌', sets:2, reps:'10',
+       tips:['收肋模式：气吐干净再做','鼓腹模式：吸气绷住不吐气直接卷，刺激极强','下放不下到底防髋屈肌代偿']}
+    ]
+  },
+  arms: {
+    id:'arms', name:'手臂日', en:'ARMS', focus:'三头 · 二头 · 肱肌', color:'#F472B6',
+    note:'逻辑：先练三头再练二头（先二头则手臂充血后三头难以收紧）。追求肌肉质量（拉丝感、刻度感），关键在于肌肉完全收紧的能力。可切换「完整版」与「超级组版」。',
+    variants: {
+      full: '完整版 · 一周一次',
+      super: '超级组版 · 二练 / 补充（约 30 分钟）'
+    },
+    warm: [
+      {name:'热身组', mus:'手臂无需特殊热身', sets:2, reps:'轻重量',
+       tips:['手臂训练无需特殊热身，多做两组轻重量热身组即可','第一个动作第一组用轻重量激活，肘部不适则后续调整']}
+    ],
+    mainFull: [
+      {name:'三头闭屈伸（绳索）', mus:'三头（近端）', sets:3, reps:'12~15',
+       tips:['滑轮调低与下巴齐平，绳索不卡顿','微微俯身、肩伸位，主做肘伸；肘伸时完全伸直','大臂抬高，但需在沉肩状态下（避免肩胛前倾）','肘部向内收，不可外展（外展则三头长头松弛）','伸直时手腕向内拐（尺偏收紧），收缩更紧','肩伸位侧重三头近端；肩屈位侧重远端，优先肩伸位']},
+      {name:'仰卧杠铃臂屈伸', mus:'三头（增肌主力）', sets:4, reps:'10~12',
+       tips:['凳子调至约 15°（完全调平则核心刺激过强）','起始位：肘约 90°，确保三头预先受力','下放时手腕顶住不松，避免肘关节承担压力','向额头位置下放；回到 90° 即可，不完全伸直（重离心）','手肘向内收保持外旋；握距与肩同宽；腰贴凳面不反弓','1 组适应组 + 3 组正式组；无需顶峰收缩，重点在离心']},
+      {name:'坐姿绳索二头弯曲', mus:'二头（内侧）', sets:3, reps:'12',
+       tips:['大臂置于膝盖上；外旋位 + 半卧（靠近尺侧，内侧肌纤维更饱满）','起始位从半程开始，不要完全放到底','躯干保持稳定，不被重量带走','外旋受限：在动作中练该功能（高频训练提升能力），降重量打磨','眼睛看不到的收缩行程，身体也记不住，无需盲目增加行程']},
+      {name:'仰卧哑铃弯举', mus:'二头（拉伸位）', sets:3, reps:'12',
+       tips:['凳子约 45°；仰卧处于肩伸位','外旋位 + 肘内收（外展则二头收不紧）','行程不要放到底，留一点距离','胸廓稳定 → 肩胛稳定 → 肩部稳定','后脑勺垫瑜伽砖/毛巾，防止下放时抬头代偿','有二头肌腱炎者禁忌此动作']},
+      {name:'单手颈后臂屈伸', mus:'三头（肩屈位）', sets:3, reps:'12',
+       tips:['滑轮调至最低，单手握住把手转身','收核心不顶腰，向上发力（非向前）','肘部主动内收，避免向外转','下放时手腕不塌，保持向上掰的感觉（减轻肘部压力）','行程无需完全收紧，主要侧重离心段','提升肩区能力：对背部、三头完整性、肩关节能力帮助巨大','做完不停直接衔接下一动作，形成小超级组']},
+      {name:'绳索锤式弯举', mus:'肱肌', sets:2, reps:'24',
+       tips:['只做上半段：下放至约 90° 即止','最紧处停顿，强化顶峰收缩','高次数（约 24 次）、轻重量','禁止后仰；大臂固定不动，仅做肘屈伸','内旋位（掌心相对）更孤立刺激肱肌，但易错变面拉：躯干与肩不动']},
+      {name:'坐姿二头弯举', mus:'肱肌 · 线条', sets:3, reps:'12~15',
+       tips:['核心收紧、禁止后仰、重心前移','仅做肘屈伸，避免肩关节参与（防止变成练肩）','强调向心收缩，下放幅度不宜过大','内旋位更孤立但要求肩关节高；旋前受限/肘弹响者用外旋位','即使围度不大，清晰的肱肌线条也显著提升视觉美感']}
+    ],
+    mainSuper: [
+      {name:'超级组 A · 单手绳索臂屈伸', mus:'三头', sets:3, reps:'10~12',
+       tips:['肩伸位起始；完全伸直肘关节（不适则不完全伸直）','肩抬高并向内收，加轻微旋前','重量较重时，手腕不松脱即可，无需强制加入旋前','滑轮高度不宜过高（避免绳索打胸口）','热身务必充分']},
+      {name:'超级组 A · 坐姿绳索弯曲', mus:'二头（内侧）', sets:3, reps:'10',
+       tips:['肘部卡在大臂上，半握、外旋（针对二头肌内侧）','放下时手腕勾起来、不塌陷','收缩感：挤爆二头肌','重量选 10RM 左右（兼顾重量与收缩）','珍惜前几组：肌肉未充血时收缩最紧，注意力拉满','3 组正式组即结束，宁可组数少、重量重、质量高']},
+      {name:'超级组 B · 仰卧杠铃臂伸', mus:'三头', sets:3, reps:'10~12',
+       tips:['凳子角度 15°（减少核心参与，增强三头刺激）','大臂固定：下放时大臂不可向后移动（保证张力持续）','行程无需完全伸直，侧重离心训练','起始位：大臂抬起至三头张力仍在的位置','正手对肩要求高；反手缓解肘部不适但对手腕要求高','重量 10–12RM']},
+      {name:'超级组 B · 站姿杠铃弯曲', mus:'二头', sets:3, reps:'10~12',
+       tips:['窄距半握（增强二头刺激）','大臂固定：下放时不可向后移动（保证张力持续）','在控制下尽量伸直（增加行程，利于二头肌腱）','启动难度增加时张力大，保持控制','重量 10–12RM']}
+    ],
+    abs: [
+      {name:'健腹轮（跪姿）', mus:'腹直肌 · 躯干稳定', sets:2, reps:'8~10',
+       tips:['肩胛骨顶起、深吸气保持胸廓充盈','前推过程肩胛保持稳定在一个平面','手腕顶起不塌；做自己能控制的幅度']}
+    ]
+  }
+};
+
+/* ================= 状态 ================= */
+var LS_KEY = 'split5_v2';
+var LS_OLD = 'split5_v1';
+var state = load();
+function load(){
+  var s = null;
+  try{ var raw = localStorage.getItem(LS_KEY); if(raw) s = JSON.parse(raw); }catch(e){}
+  if(!s){
+    // 从 v1 迁移历史记录
+    var old = null;
+    try{ var oraw = localStorage.getItem(LS_OLD); if(oraw) old = JSON.parse(oraw); }catch(e2){}
+    s = defaultState();
+    if(old && old.records){ s.records = old.records; }
+  }
+  if(!s.records) s.records = [];
+  if(!s.edit) s.edit = {};
+  if(!s.customToday) s.customToday = null;
+  if(!s.github) s.github = {owner:'', repo:'', token:'', path:'data.json'};
+  if(!s.github.path) s.github.path = 'data.json';
+  s.training = s.training || null;
+  if(s.training && !('timerState' in s.training)){ s.training.timerState='idle'; s.training.elapsed=0; s.training.startTs=null; }
+  s.currentView = s.currentView || 'today';
+  return s;
+}
+function defaultState(){
+  return { records:[], training:null, currentView:'today', edit:{}, customToday:null };
+}
+function save(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){}
+}
+
+/* ================= 工具 ================= */
+function pad(n){ return n<10 ? '0'+n : ''+n; }
+function todayStr(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function fmtDate(s){
+  var p=s.split('-'); var d=new Date(+p[0], +p[1]-1, +p[2]);
+  var w=['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+  return (+p[1])+'月'+ (+p[2])+'日 · '+w;
+}
+function daysBetween(a,b){
+  var pa=a.split('-'), pb=b.split('-');
+  var da=new Date(+pa[0],+pa[1]-1,+pa[2]), db=new Date(+pb[0],+pb[1]-1,+pb[2]);
+  return Math.round((db-da)/86400000);
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+function keyOf(dayId, variant){ return dayId + (variant ? '_'+variant : ''); }
+
+/* ================= 今日训练逻辑 ================= */
+function autoDay(){
+  var recs = state.records;
+  if(!recs.length) return 'chest';
+  var last = recs[recs.length-1];
+  var li = CYCLES.indexOf(last.dayId);
+  if(li<0) li=0;
+  var ds = daysBetween(last.date, todayStr());
+  if(ds<=0) return last.dayId;
+  var idx = li;
+  for(var i=0;i<ds;i++){
+    idx = (idx+1)%6; // 0-4 训练日, 5 休息
+  }
+  return idx===5 ? 'rest' : CYCLES[idx];
+}
+function cyclePos(dayId){
+  var i = CYCLES.indexOf(dayId);
+  return i<0 ? 0 : i;
+}
+function roundOf(dayId){
+  var n = state.records.filter(function(r){return r.dayId===dayId;}).length;
+  return n+1;
+}
+function todayLabel(dayId){ return CYCLES.indexOf(dayId)+1; }
+
+/* 构建动作列表（优先用户编辑版） */
+function buildActions(dayId, variant){
+  var key = keyOf(dayId, variant);
+  if(state.edit && state.edit[key] && state.edit[key].length){
+    return state.edit[key].map(function(a){ return Object.assign({}, a); });
+  }
+  var d = DAYS[dayId];
+  var arr = [];
+  d.warm.forEach(function(a){ arr.push({name:a.name, mus:a.mus, sets:a.sets, reps:a.reps, tips:(a.tips||[]).slice(), phase:'warm'}); });
+  var mains = (dayId==='arms' && variant==='super') ? d.mainSuper : (d.mainFull || d.main);
+  mains.forEach(function(a){ arr.push({name:a.name, mus:a.mus, sets:a.sets, reps:a.reps, tips:(a.tips||[]).slice(), phase:'main'}); });
+  (d.abs||[]).forEach(function(a){ arr.push({name:a.name, mus:a.mus, sets:a.sets, reps:a.reps, tips:(a.tips||[]).slice(), phase:'abs'}); });
+  return arr;
+}
+
+function ensureTraining(dayId, variant){
+  var key = keyOf(dayId, variant);
+  var t = state.training;
+  if(t && keyOf(t.dayId,t.variant)===key) return t;
+  // 已有其他训练进行中，先存起来
+  if(t && t.dayId!=='rest'){ state.stash = state.stash||{}; state.stash[keyOf(t.dayId,t.variant)] = t; }
+  var saved = (state.stash||{})[key];
+  if(saved){ state.training = saved; return saved; }
+  var actions = buildActions(dayId, variant);
+  var tr = {
+    dayId:dayId, variant:variant||'',
+    timerState:'idle', elapsed:0, startTs:null,
+    progress: actions.map(function(a){ return {sets:a.sets, done:[], weights:[], reps:[]}; })
+  };
+  state.training = tr;
+  save();
+  return tr;
+}
+function totalSets(progress){
+  var n=0;
+  progress.forEach(function(p){ n += p.sets; });
+  return n;
+}
+function doneSets(progress){
+  var n=0;
+  progress.forEach(function(p){ n += p.done.length; });
+  return n;
+}
+function isDone(p, idx){ return p.done.indexOf(idx)>=0; }
+function toggleSet(p, idx){
+  var i = p.done.indexOf(idx);
+  if(i>=0) p.done.splice(i,1); else p.done.push(idx);
+  save();
+}
+
+/* ================= 计时器 ================= */
+function curElapsed(){
+  var t = state.training;
+  if(!t) return 0;
+  var e = t.elapsed || 0;
+  if(t.timerState==='running' && t.startTs){ e += (Date.now()-t.startTs)/1000; }
+  return e;
+}
+var timerInt = null;
+function startTimer(){
+  if(timerInt) clearInterval(timerInt);
+  timerInt = setInterval(function(){
+    var el = document.getElementById('timer-val');
+    if(!el) return;
+    var sec = Math.floor(curElapsed());
+    el.textContent = pad(Math.floor(sec/60))+':'+pad(sec%60);
+  }, 1000);
+}
+function renderTimerCtrl(){
+  var wrap = document.getElementById('timer-ctrl');
+  if(!wrap) return;
+  var t = state.training;
+  if(!t || t.dayId==='rest'){ wrap.innerHTML=''; return; }
+  var st = t.timerState || 'idle';
+  var html = '';
+  if(st==='idle'){
+    html = '<button class="tbtn on" id="t-start">开始计时</button>';
+  } else if(st==='running'){
+    html = '<button class="tbtn" id="t-pause">暂停</button><button class="tbtn warn" id="t-reset">重置</button>';
+  } else {
+    html = '<button class="tbtn on" id="t-resume">继续</button><button class="tbtn warn" id="t-reset">重置</button>';
+  }
+  wrap.innerHTML = html;
+  var b = document.getElementById('t-start');
+  if(b) b.addEventListener('click', function(){
+    state.training.timerState='running'; state.training.startTs=Date.now(); save(); renderToday();
+  });
+  b = document.getElementById('t-pause');
+  if(b) b.addEventListener('click', function(){
+    var t2 = state.training;
+    t2.elapsed = Math.floor(curElapsed());
+    t2.timerState='paused'; t2.startTs=null; save(); renderToday();
+  });
+  b = document.getElementById('t-resume');
+  if(b) b.addEventListener('click', function(){
+    state.training.startTs=Date.now(); state.training.timerState='running'; save(); renderToday();
+  });
+  b = document.getElementById('t-reset');
+  if(b) b.addEventListener('click', function(){
+    if(!confirm('确定重置计时器？')) return;
+    var t2 = state.training;
+    t2.timerState='idle'; t2.elapsed=0; t2.startTs=null; save(); renderToday();
+  });
+}
+
+/* ================= 动作编辑 ================= */
+var editCtx = null; // {key, dayId, variant, index(null=新增)}
+
+function openModal(dayId, variant, index){
+  var actions = buildActions(dayId, variant);
+  var a = index!=null ? actions[index] : null;
+  editCtx = {key:keyOf(dayId,variant), dayId:dayId, variant:variant, index:index};
+  document.getElementById('modal-title').textContent = a ? '编辑动作' : '添加动作';
+  document.getElementById('f-name').value = a ? a.name : '';
+  document.getElementById('f-mus').value = a ? (a.mus||'') : '';
+  document.getElementById('f-sets').value = a ? a.sets : 3;
+  document.getElementById('f-reps').value = a ? a.reps : '12';
+  document.getElementById('f-phase').value = a ? (a.phase||'main') : 'main';
+  document.getElementById('f-tips').value = a ? (a.tips||[]).join('\n') : '';
+  document.getElementById('m-del').style.display = a ? 'block' : 'none';
+  document.getElementById('mask').style.display = 'flex';
+}
+function closeModal(){ document.getElementById('mask').style.display='none'; editCtx=null; }
+function saveActionList(key, actions){
+  state.edit = state.edit || {};
+  var t = state.training;
+  var oldActs = null, oldProg = null;
+  if(t && keyOf(t.dayId,t.variant)===key){ oldActs = buildActions(t.dayId,t.variant); oldProg = t.progress; }
+  state.edit[key] = actions.map(function(a){ return Object.assign({}, a); });
+  save();
+  if(t && oldActs && oldProg){
+    var newProg = actions.map(function(a){
+      var idx = -1;
+      for(var i=0;i<oldActs.length;i++){ if(oldActs[i].name===a.name){ idx=i; break; } }
+      if(idx>=0 && oldActs[idx].sets===a.sets && oldProg[idx]){
+        return {sets:a.sets, done:oldProg[idx].done.slice(), weights:oldProg[idx].weights.slice(), reps:oldProg[idx].reps.slice()};
+      }
+      return {sets:a.sets, done:[], weights:[], reps:[]};
+    });
+    t.progress = newProg;
+    save();
+  }
+  renderToday();
+}
+document.getElementById('m-save').addEventListener('click', function(){
+  if(!editCtx) return;
+  var name = document.getElementById('f-name').value.trim();
+  if(!name){ alert('请填写动作名称'); return; }
+  var sets = Math.max(1, parseInt(document.getElementById('f-sets').value,10)||1);
+  var tips = document.getElementById('f-tips').value.split('\n').map(function(x){return x.trim();}).filter(Boolean);
+  var act = {
+    name: name,
+    mus: document.getElementById('f-mus').value.trim(),
+    sets: sets,
+    reps: document.getElementById('f-reps').value.trim() || '12',
+    tips: tips,
+    phase: document.getElementById('f-phase').value
+  };
+  var base = (state.edit && state.edit[editCtx.key]) ? state.edit[editCtx.key].slice() : buildActions(editCtx.dayId, editCtx.variant);
+  if(editCtx.index==null){
+    base.push(act);
+  } else {
+    base[editCtx.index] = act;
+  }
+  saveActionList(editCtx.key, base);
+  closeModal();
+});
+document.getElementById('m-cancel').addEventListener('click', closeModal);
+document.getElementById('m-del').addEventListener('click', function(){
+  if(!editCtx || editCtx.index==null) return;
+  var actions = (state.edit && state.edit[editCtx.key]) ? state.edit[editCtx.key].slice() : buildActions(editCtx.dayId, editCtx.variant);
+  var nm = actions[editCtx.index] ? actions[editCtx.index].name : '';
+  if(!confirm('删除动作「'+nm+'」？')) return;
+  actions.splice(editCtx.index,1);
+  saveActionList(editCtx.key, actions);
+  closeModal();
+});
+document.getElementById('mask').addEventListener('click', function(e){
+  if(e.target === this) closeModal();
+});
+document.getElementById('btn-add').addEventListener('click', function(){
+  var t = state.training;
+  if(!t || t.dayId==='rest') return;
+  openModal(t.dayId, t.variant, null);
+});
+document.getElementById('btn-reset-plan').addEventListener('click', function(){
+  var t = state.training;
+  if(!t || t.dayId==='rest') return;
+  var key = keyOf(t.dayId,t.variant);
+  if(!state.edit[key]){ alert('当前训练日还没有自定义修改'); return; }
+  if(!confirm('恢复该训练日的默认动作？自定义的修改和新增将被清除。')) return;
+  delete state.edit[key];
+  save();
+  ensureTraining(t.dayId, t.variant);
+  state.training.progress = buildActions(t.dayId,t.variant).map(function(a){ return {sets:a.sets, done:[], weights:[], reps:[]}; });
+  save();
+  renderToday();
+});
+
+/* ================= 渲染：今日 ================= */
+var curVariant = {arms:'full'};
+var openActions = {};
+
+function renderDayTabs(){
+  var el = document.getElementById('daytabs');
+  var html = '';
+  CYCLES.forEach(function(id){
+    var d = DAYS[id];
+    var on = (state.training && state.training.dayId===id) ? ' on' : '';
+    html += '<div class="daytab'+on+'" data-day="'+id+'">'+
+      '<span class="dt-name">'+d.name+'</span><span class="dt-en num">'+d.en+'</span></div>';
+  });
+  var onRest = (state.training && state.training.dayId==='rest') ? ' on' : '';
+  html += '<div class="daytab rest'+onRest+'" data-day="rest"><span class="dt-name">休息</span><span class="dt-en num">OFF</span></div>';
+  el.innerHTML = html;
+  el.querySelectorAll('.daytab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      selectDay(tab.getAttribute('data-day'), true);
+    });
+  });
+}
+
+function selectDay(dayId, manual){
+  if(dayId==='rest'){
+    state.training = {dayId:'rest', variant:'', timerState:'idle', elapsed:0, startTs:null, progress:[]};
+    if(manual) state.customToday = {date:todayStr(), dayId:'rest'};
+    save(); renderToday(); return;
+  }
+  var d = DAYS[dayId];
+  var variant = (dayId==='arms') ? (curVariant.arms||'full') : '';
+  ensureTraining(dayId, variant);
+  if(manual) state.customToday = {date:todayStr(), dayId:dayId};
+  save();
+  renderToday();
+}
+
+function renderVariantSwitch(){
+  var wrap = document.getElementById('variant-switch');
+  if(!wrap) return;
+  if(!state.training || state.training.dayId!=='arms'){
+    wrap.style.display='none'; return;
+  }
+  wrap.style.display='block';
+  var v = state.training.variant||'full';
+  wrap.innerHTML =
+    '<div class="sec-title" style="margin-top:14px">训练方案<span class="tag">手臂日</span></div>'+
+    '<div class="daytabs" style="padding-bottom:4px">'+
+      '<div class="daytab'+(v==='full'?' on':'')+'" data-v="full"><span class="dt-name" style="font-size:12.5px">完整版</span><span class="dt-en">一周一次</span></div>'+
+      '<div class="daytab'+(v==='super'?' on':'')+'" data-v="super"><span class="dt-name" style="font-size:12.5px">超级组版</span><span class="dt-en">二练/30min</span></div>'+
+    '</div>';
+  wrap.querySelectorAll('.daytab').forEach(function(tab){
+    tab.addEventListener('click', function(){
+      var v2 = tab.getAttribute('data-v');
+      if(v2===v) return;
+      curVariant.arms = v2;
+      var t = state.training;
+      if(t) { state.stash = state.stash||{}; state.stash[keyOf(t.dayId,t.variant)] = t; }
+      ensureTraining('arms', v2);
+      save();
+      renderToday();
+    });
+  });
+}
+
+function renderRest(){
+  var restEl = document.getElementById('rest-hero');
+  var mainEl = document.getElementById('today-main');
+  var isRest = state.training && state.training.dayId==='rest';
+  if(!isRest){ restEl.style.display='none'; restEl.innerHTML=''; mainEl.style.display='block'; return; }
+  mainEl.style.display='none';
+  restEl.style.display='block';
+  restEl.innerHTML =
+    '<div class="hero" style="background:linear-gradient(150deg,#1A2233,#10141C)">'+
+      '<div class="hero-top"><div class="hero-day"><span class="pill idle">休息日</span></div>'+
+      '<div class="hero-meta"><div class="date">'+fmtDate(todayStr())+'</div><div class="round">恢复 · 下一轮从胸日开始</div></div></div>'+
+      '<div class="hero-focus" style="margin-top:10px">充分恢复，让肌肉完成超量补偿。休息也是训练的一部分：<b>练得稳、练得久 &gt; 走得快</b>。</div>'+
+      '<div class="timer-row"><div class="timer"><span class="num">OFF</span></div>'+
+      '<div class="prog-num"><span class="t">今日</span>休息</div></div>'+
+      '<div class="cycle">'+cycleHTML()+'</div>'+
+    '</div>'+
+    '<div class="sec-title">可选 · 恢复日建议<span class="opt">非必须</span></div>'+
+    '<div class="ex"><div class="ex-head"><div class="ex-num">1</div><div class="ex-main"><div class="ex-name">散步 / 爬坡走</div><div class="ex-sub"><span class="mus">低强度有氧 · 30–40 分钟</span></div></div></div></div>'+
+    '<div class="ex"><div class="ex-head"><div class="ex-num">2</div><div class="ex-main"><div class="ex-name">泡沫轴放松</div><div class="ex-sub"><span class="mus">胸 · 背 · 大腿后侧</span></div></div></div></div>'+
+    '<div class="ex"><div class="ex-head"><div class="ex-num">3</div><div class="ex-main"><div class="ex-name">海豹式拉伸</div><div class="ex-sub"><span class="mus">腹肌 · 每次深吸气后伸展</span></div></div></div></div>';
+}
+
+function cycleHTML(){
+  var html = '';
+  for(var i=0;i<5;i++){
+    var id = CYCLES[i];
+    var now = state.training && state.training.dayId===id;
+    var filled = false;
+    state.records.forEach(function(r){ if(r.dayId===id && r.doneSets>0) filled=true; });
+    html += '<div class="cyc-item"><div class="dot'+(filled?' filled':'')+(now?' now':'')+'"></div>'+
+      '<span class="cyc-label num'+(now?' hot':'')+'">'+CYCLE_NAMES[id]+'</span></div>';
+  }
+  var restNow = state.training && state.training.dayId==='rest';
+  html += '<div class="cyc-item"><div class="dot'+(restNow?' now':'')+'"></div><span class="cyc-label num'+(restNow?' hot':'')+'">休</span></div>';
+  return html;
+}
+
+function renderToday(){
+  renderDayTabs();
+  var isRest = state.training && state.training.dayId==='rest';
+  if(isRest){ renderRest(); return; }
+  var t = state.training;
+  if(!t){ selectDay(autoDay(), false); return; }
+  var d = DAYS[t.dayId];
+  if(!d){ selectDay('chest', false); return; }
+
+  var heroPill = document.getElementById('hero-pill');
+  heroPill.textContent = d.name;
+  document.getElementById('hero-date').textContent = fmtDate(todayStr());
+  document.getElementById('hero-round').textContent = '第'+todayLabel(t.dayId)+'天 / 5 天循环 · 第'+roundOf(t.dayId)+'轮';
+  document.getElementById('hero-focus').innerHTML = '主攻：<b>'+esc(d.focus)+'</b>'+
+    (t.dayId==='arms' ? ' · 方案：'+esc(d.variants[t.variant||'full']) : '');
+
+  var total = totalSets(t.progress), done = doneSets(t.progress);
+  var pct = total ? Math.round(done/total*100) : 0;
+  document.getElementById('prog-pct').textContent = pct+'%';
+  document.getElementById('prog-fill').style.width = pct+'%';
+  document.getElementById('prog-done').innerHTML = done+' <b>组已完成</b>';
+  document.getElementById('prog-total').textContent = '共 '+total+' 组';
+  document.getElementById('finish-label').textContent = '结束训练 · '+pct+'%';
+
+  var cycle = document.getElementById('cycle');
+  cycle.innerHTML = cycleHTML();
+
+  // 动作列表
+  var list = document.getElementById('ex-list');
+  var actions = buildActions(t.dayId, t.variant);
+  var html = '';
+  var idx = 0;
+  var phaseTitle = {warm:'热身与激活', main:'正式训练', abs:'核心附加 · 可选'};
+  var phaseTag = {warm:'不计入进度', main:'计入进度', abs:'腹肌强化'};
+  var phaseShown = {};
+  actions.forEach(function(a){
+    idx++;
+    var p = t.progress[idx-1];
+    if(!p) p = {sets:a.sets, done:[], weights:[], reps:[]};
+    var ph = a.phase || 'main';
+    if(!phaseShown[ph]){
+      phaseShown[ph]=true;
+      html += '<div class="sec-title">'+phaseTitle[ph]+'<span class="tag">'+phaseTag[ph]+'</span></div>';
+    }
+    var doneN = p.done.length;
+    var openKey = t.dayId+'_'+t.variant+'_'+idx;
+    var isOpen = openActions[openKey];
+    html += '<div class="ex'+(isOpen?' open':'')+(doneN>=p.sets?' on':'')+'">'+
+      '<div class="ex-head" data-open="'+idx+'">'+
+        '<div class="ex-num num">'+idx+'</div>'+
+        '<div class="ex-main">'+
+          '<div class="ex-name">'+esc(a.name)+'</div>'+
+          '<div class="ex-sub"><span class="mus">'+esc(a.mus||'')+'</span>'+
+            (ph==='abs' ? '<span style="color:var(--accent2)">可选</span>' : '')+
+          '</div>'+
+        '</div>'+
+        '<div class="ex-sets-badge num">'+doneN+'/'+p.sets+'组 × '+esc(a.reps)+'</div>'+
+        '<div class="ex-head-actions">'+
+          '<button class="icon-btn" data-edit="'+idx+'" title="编辑"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>'+
+          '<button class="icon-btn del" data-del="'+idx+'" title="删除"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>'+
+        '</div>'+
+        '<div class="ex-arrow"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>'+
+      '</div>'+
+      '<div class="ex-body">'+
+        '<div class="tips">'+ (a.tips||[]).map(function(tp,i){ return '<div class="tip'+(i===0?' key':'')+'">'+esc(tp)+'</div>'; }).join('') +'</div>'+
+        setTable(idx, p) +
+      '</div></div>';
+  });
+  list.innerHTML = html;
+
+  // 事件：展开
+  list.querySelectorAll('.ex-head').forEach(function(head){
+    head.addEventListener('click', function(e){
+      if(e.target.closest('.icon-btn')) return;
+      var n = +head.getAttribute('data-open');
+      var key = t.dayId+'_'+t.variant+'_'+n;
+      openActions[key] = !openActions[key];
+      renderToday();
+    });
+  });
+  // 事件：编辑 / 删除
+  list.querySelectorAll('[data-edit]').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var n = +btn.getAttribute('data-edit');
+      openModal(t.dayId, t.variant, n-1);
+    });
+  });
+  list.querySelectorAll('[data-del]').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var n = +btn.getAttribute('data-del');
+      var actions2 = (state.edit && state.edit[keyOf(t.dayId,t.variant)]) ? state.edit[keyOf(t.dayId,t.variant)].slice() : buildActions(t.dayId,t.variant);
+      var nm = actions2[n-1] ? actions2[n-1].name : '';
+      if(!confirm('删除动作「'+nm+'」？')) return;
+      actions2.splice(n-1,1);
+      saveActionList(keyOf(t.dayId,t.variant), actions2);
+    });
+  });
+  // 事件：勾选 / 输入
+  list.querySelectorAll('.set-done').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var n = +btn.getAttribute('data-a'), s = +btn.getAttribute('data-s');
+      toggleSet(t.progress[n-1], s);
+      renderToday();
+    });
+  });
+  list.querySelectorAll('.set-input').forEach(function(inp){
+    inp.addEventListener('input', function(){
+      var n = +inp.getAttribute('data-a'), s = +inp.getAttribute('data-s');
+      var key2 = inp.getAttribute('data-k');
+      var v = parseFloat(inp.value)||0;
+      var arr = t.progress[n-1][key2==='w'?'weights':'reps'];
+      arr[s] = v;
+      save();
+    });
+    var n=+inp.getAttribute('data-a'), s=+inp.getAttribute('data-s'), key2=inp.getAttribute('data-k');
+    var arr = t.progress[n-1][key2==='w'?'weights':'reps'];
+    if(arr[s]!=null) inp.value = arr[s];
+  });
+  renderVariantSwitch();
+  renderTimerCtrl();
+  startTimer();
+}
+function setTable(idx, p){
+  var html = '<div class="sets-head"><div class="set-col" style="flex:1">组</div><div class="set-col" style="flex:1">重量(kg)</div>'+
+    '<div class="set-col" style="flex:1">次数</div><div class="set-col" style="width:38px">完成</div></div>';
+  for(var i=0;i<p.sets;i++){
+    html += '<div class="sets">'+
+      '<div class="set-row"><span class="set-label num">'+(i+1)+'</span></div>'+
+      '<div class="set-row"><input class="set-input num" type="text" inputmode="decimal" placeholder="0" data-a="'+idx+'" data-s="'+i+'" data-k="w"'+(p.weights[i]!=null?' value="'+p.weights[i]+'"':'')+'></div>'+
+      '<div class="set-row"><input class="set-input num" type="text" inputmode="numeric" placeholder="0" data-a="'+idx+'" data-s="'+i+'" data-k="r"'+(p.reps[i]!=null?' value="'+p.reps[i]+'"':'')+'></div>'+
+      '<div class="set-row"><div class="set-done'+(isDone(p,i)?' on':'')+'" data-a="'+idx+'" data-s="'+i+'"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg></div></div>'+
+    '</div>';
+  }
+  return html;
+}
+
+/* ================= 结束训练 ================= */
+document.getElementById('btn-finish').addEventListener('click', function(){
+  var t = state.training;
+  if(!t || t.dayId==='rest'){ return; }
+  var total = totalSets(t.progress), done = doneSets(t.progress);
+  if(total===0){ return; }
+  var actions = buildActions(t.dayId, t.variant);
+  var rec = {
+    date: todayStr(),
+    dayId: t.dayId,
+    variant: t.variant||'full',
+    duration: Math.max(1, Math.round(curElapsed())),
+    totalSets: total,
+    doneSets: done,
+    actions: actions.map(function(a,i){
+      return {name:a.name, sets:a.sets, done:t.progress[i].done.slice(), weights:t.progress[i].weights.slice(), reps:t.progress[i].reps.slice()};
+    })
+  };
+  state.records = state.records.filter(function(r){ return !(r.date===rec.date && r.dayId===rec.dayId); });
+  state.records.push(rec);
+  state.records.sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+  state.training = null;
+  state.stash = null;
+  state.customToday = {date:todayStr(), dayId:rec.dayId};
+  save();
+  var next = autoDay();
+  selectDay(next==='rest'?'rest':next, false);
+  renderStats(); renderHistory();
+});
+
+/* ================= 渲染：历史 ================= */
+var calYear, calMonth;
+function initCal(){ var d=new Date(); calYear=d.getFullYear(); calMonth=d.getMonth(); }
+function calKey(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+function renderCal(){
+  document.getElementById('cal-month').textContent = calYear+'年'+(calMonth+1)+'月';
+  var grid = document.getElementById('cal-grid');
+  var html = '';
+  ['日','一','二','三','四','五','六'].forEach(function(w){ html += '<div class="cal-week">'+w+'</div>'; });
+  var first = new Date(calYear, calMonth, 1);
+  var startDow = first.getDay();
+  var dim = new Date(calYear, calMonth+1, 0).getDate();
+  var recMap = {};
+  state.records.forEach(function(r){ recMap[r.date]=r; });
+  var tstr = todayStr();
+  for(var i=0;i<startDow;i++) html += '<div class="cal-cell blank"></div>';
+  for(var d=1;d<=dim;d++){
+    var key = calYear+'-'+pad(calMonth+1)+'-'+pad(d);
+    var rec = recMap[key];
+    var cls = 'cal-cell';
+    if(key===tstr) cls += ' now';
+    if(rec){
+      cls += ' '+(rec.doneSets>0 && rec.doneSets>=rec.totalSets*0.9 ? 'own' : 'mark');
+    }
+    html += '<div class="'+cls+'">'+d+(rec?'<span class="mark"></span>':'')+'</div>';
+  }
+  grid.innerHTML = html;
+}
+function renderRecs(){
+  var list = document.getElementById('rec-list');
+  var recs = state.records.slice().reverse();
+  document.getElementById('rec-count').textContent = recs.length+' 条';
+  if(!recs.length){
+    list.innerHTML = '<div class="empty">还没有训练记录，去「今日」完成第一练吧</div>';
+    return;
+  }
+  var html = '';
+  recs.forEach(function(r){
+    var d = DAYS[r.dayId];
+    var pct = r.totalSets ? Math.round(r.doneSets/r.totalSets*100) : 0;
+    var fin = r.doneSets>=r.totalSets;
+    html += '<div class="rec" data-date="'+r.date+'" data-day="'+r.dayId+'">'+
+      '<div class="rec-badge num">'+CYCLE_NAMES[r.dayId]+'</div>'+
+      '<div class="rec-main">'+
+        '<div class="rec-title">'+d.name+(r.variant==='super'?' · 超级组':'')+'</div>'+
+        '<div class="rec-sub">'+fmtDate(r.date)+' · '+Math.round(r.duration/60)+' 分钟 · '+r.actions.length+' 个动作</div>'+
+      '</div>'+
+      '<div class="rec-right"><div class="rec-pct num">'+pct+'%</div>'+
+      '<div class="rec-status'+(fin?' fin':'')+'">'+(fin?'已完成':'未完成')+' · '+r.doneSets+'/'+r.totalSets+'组</div></div>'+
+      '<button class="rec-del" data-date="'+r.date+'" data-day="'+r.dayId+'" title="删除记录"><svg viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>'+
+    '</div>';
+  });
+  list.innerHTML = html;
+  list.querySelectorAll('.rec-del').forEach(function(btn){
+    btn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var date = btn.getAttribute('data-date'), day = btn.getAttribute('data-day');
+      if(!confirm('删除 '+fmtDate(date)+' 的 '+CYCLE_NAMES[day]+'训练记录？')) return;
+      state.records = state.records.filter(function(r){ return !(r.date===date && r.dayId===day); });
+      save();
+      renderCal(); renderRecs(); renderStats();
+    });
+  });
+  list.querySelectorAll('.rec').forEach(function(card){
+    card.addEventListener('click', function(){
+      var date = card.getAttribute('data-date'), day = card.getAttribute('data-day');
+      var rec = state.records.filter(function(r){ return r.date===date && r.dayId===day; })[0];
+      if(rec) renderDetail(rec);
+    });
+  });
+}
+function renderHistory(){ renderCal(); renderRecs(); }
+
+/* ================= 训练详情 ================= */
+function renderDetail(rec){
+  var d = DAYS[rec.dayId] || DAYS.chest;
+  var pct = rec.totalSets ? Math.round(rec.doneSets/rec.totalSets*100) : 0;
+  document.getElementById('detail-title').textContent = d.name+' · 训练详情';
+  var html = '<div class="detail-overview">'+
+    '<div class="do-row"><span>'+d.name+(rec.variant==='super'?' · 超级组':'')+'</span><b>'+fmtDate(rec.date)+'</b></div>'+
+    '<div class="do-row"><span>训练时长</span><b class="num">'+Math.round(rec.duration/60)+' 分钟</b></div>'+
+    '<div class="do-row"><span>完成进度</span><b class="num">'+rec.doneSets+' / '+rec.totalSets+' 组 · '+pct+'%</b></div></div>';
+  html += '<div class="sec-title" style="margin-top:12px">动作明细<span class="count">'+rec.actions.length+' 个动作</span></div>';
+  (rec.actions||[]).forEach(function(a, ai){
+    var setsN = a.sets||0;
+    html += '<div class="detail-ex">'+
+      '<div class="de-head"><span class="de-idx num">'+(ai+1)+'</span><span class="de-name">'+esc(a.name)+'</span><span class="de-sets">'+(a.done?a.done.length:0)+'/'+setsN+'组</span></div>';
+    for(var i=0;i<setsN;i++){
+      var w = a.weights && a.weights[i]!=null ? a.weights[i] : '—';
+      var r = a.reps && a.reps[i]!=null ? a.reps[i] : '—';
+      var ok = a.done && a.done.indexOf(i)>=0;
+      html += '<div class="de-set"><span class="ds-n num">'+(i+1)+'</span>'+
+        '<span class="ds-w num">'+w+' kg</span><span class="ds-r num">'+r+' 次</span>'+
+        '<span class="ds-st'+(ok?' ok':'')+'">'+(ok?'完成':'未完成')+'</span></div>';
+    }
+    html += '</div>';
+  });
+  document.getElementById('detail-body').innerHTML = html;
+  document.getElementById('mask-detail').style.display = 'flex';
+}
+document.getElementById('m-d-close').addEventListener('click', function(){
+  document.getElementById('mask-detail').style.display = 'none';
+});
+document.getElementById('mask-detail').addEventListener('click', function(e){
+  if(e.target === this) this.style.display = 'none';
+});
+
+/* ================= 数据导出 / 导入 ================= */
+function sanitizeRec(r){
+  return {
+    date: r.date || '',
+    dayId: CYCLES.indexOf(r.dayId)>=0 ? r.dayId : 'chest',
+    variant: r.variant || 'full',
+    duration: r.duration || 0,
+    totalSets: r.totalSets || 0,
+    doneSets: r.doneSets || 0,
+    actions: Array.isArray(r.actions) ? r.actions.map(function(a){
+      return {name:String(a.name||''), sets:a.sets||0, done:(a.done||[]).slice(), weights:(a.weights||[]).slice(), reps:(a.reps||[]).slice()};
+    }) : []
+  };
+}
+document.getElementById('btn-export').addEventListener('click', function(){
+  var data = {
+    app: '五分化训练助手',
+    version: 2,
+    exportedAt: todayStr(),
+    records: state.records,
+    edit: state.edit || {},
+    customToday: state.customToday
+  };
+  try{
+    var blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '五分化训练备份-'+todayStr()+'.json';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 1200);
+  }catch(err){ alert('导出失败：'+err.message); }
+});
+document.getElementById('btn-import').addEventListener('click', function(){
+  document.getElementById('file-import').click();
+});
+document.getElementById('file-import').addEventListener('change', function(e){
+  var f = e.target.files && e.target.files[0];
+  if(!f) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    try{
+      var data = JSON.parse(reader.result);
+      if(!data || !Array.isArray(data.records)){
+        alert('文件格式不正确：找不到训练记录数据'); return;
+      }
+      if(!confirm('导入后，当前设备上的训练数据将被备份文件内容覆盖（包括历史、自定义动作、今日选择）。确定导入？')) return;
+      state.records = data.records.map(sanitizeRec).filter(function(r){ return r.date; });
+      state.records.sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+      state.edit = data.edit || {};
+      state.customToday = data.customToday || null;
+      state.training = null;
+      state.stash = null;
+      save();
+      var target = autoDay();
+      selectDay(target==='rest'?'rest':target, false);
+      renderHistory(); renderStats(); renderPlan();
+      alert('导入成功');
+    }catch(err){ alert('读取文件失败：'+err.message); }
+  };
+  reader.readAsText(f);
+  e.target.value = '';
+});
+
+/* ================= GitHub 云同步 ================= */
+function encodeB64(str){
+  var bytes = new TextEncoder().encode(str);
+  var bin = '';
+  for(var i=0;i<bytes.length;i+=8192){
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i+8192));
+  }
+  return btoa(bin);
+}
+function decodeB64(b64){
+  var bin = atob(String(b64).replace(/\s/g,''));
+  var bytes = new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++){ bytes[i] = bin.charCodeAt(i); }
+  return new TextDecoder().decode(bytes);
+}
+function readGhConfig(){
+  return {
+    owner: document.getElementById('g-owner').value.trim(),
+    repo: document.getElementById('g-repo').value.trim(),
+    token: document.getElementById('g-token').value.trim(),
+    path: (document.getElementById('g-path').value.trim() || 'data.json').replace(/^\//,'')
+  };
+}
+function setGhStatus(msg, type){
+  var el = document.getElementById('g-status');
+  if(!el) return;
+  el.innerHTML = msg;
+  el.style.color = type==='ok' ? 'var(--ok)' : (type==='err' ? 'var(--danger)' : 'var(--txt3)');
+}
+function renderGh(){
+  if(!state.github) state.github = {owner:'', repo:'', token:'', path:'data.json'};
+  document.getElementById('g-owner').value = state.github.owner || '';
+  document.getElementById('g-repo').value = state.github.repo || '';
+  document.getElementById('g-token').value = state.github.token || '';
+  document.getElementById('g-path').value = state.github.path || 'data.json';
+}
+document.getElementById('g-upload').addEventListener('click', function(){
+  var cfg = readGhConfig();
+  if(!cfg.owner || !cfg.repo || !cfg.token){
+    setGhStatus('请先填写 GitHub 用户名、仓库名和 Token', 'err');
+    return;
+  }
+  state.github = cfg;
+  save();
+  var btn = this;
+  btn.disabled = true;
+  setGhStatus('正在上传到 GitHub…');
+  var payload = {
+    app: '五分化训练助手',
+    updatedAt: new Date().toISOString(),
+    records: state.records,
+    edit: state.edit || {},
+    customToday: state.customToday
+  };
+  var content = encodeB64(JSON.stringify(payload, null, 2));
+  var url = 'https://api.github.com/repos/'+encodeURIComponent(cfg.owner)+'/'+encodeURIComponent(cfg.repo)+'/contents/'+encodeURIComponent(cfg.path);
+  var headers = {Authorization:'token '+cfg.token, Accept:'application/vnd.github+json', 'Content-Type':'application/json'};
+  fetch(url, {headers:headers}).then(function(r){
+    if(r.status===404){ return null; }
+    if(!r.ok){ return r.json().then(function(j){ throw new Error(j.message||('HTTP '+r.status)); }); }
+    return r.json();
+  }).then(function(j){
+    var body = {message:'更新训练数据（五分化训练助手）', content:content};
+    if(j && j.sha) body.sha = j.sha;
+    return fetch(url, {method:'PUT', headers:headers, body:JSON.stringify(body)});
+  }).then(function(r){
+    if(!r.ok){ return r.json().then(function(j){ throw new Error(j.message||('HTTP '+r.status)); }); }
+    setGhStatus('上传成功：训练数据已保存到 '+cfg.owner+'/'+cfg.repo+'/'+cfg.path, 'ok');
+  }).catch(function(err){
+    setGhStatus('上传失败：'+err.message, 'err');
+  }).then(function(){ btn.disabled = false; });
+});
+document.getElementById('g-download').addEventListener('click', function(){
+  var cfg = readGhConfig();
+  if(!cfg.owner || !cfg.repo || !cfg.token){
+    setGhStatus('请先填写 GitHub 用户名、仓库名和 Token', 'err');
+    return;
+  }
+  state.github = cfg;
+  save();
+  var btn = this;
+  btn.disabled = true;
+  setGhStatus('正在从 GitHub 拉取…');
+  var url = 'https://api.github.com/repos/'+encodeURIComponent(cfg.owner)+'/'+encodeURIComponent(cfg.repo)+'/contents/'+encodeURIComponent(cfg.path);
+  var headers = {Authorization:'token '+cfg.token, Accept:'application/vnd.github+json'};
+  fetch(url, {headers:headers}).then(function(r){
+    if(!r.ok){ return r.json().then(function(j){ throw new Error(j.message||('HTTP '+r.status)); }); }
+    return r.json();
+  }).then(function(j){
+    var data = JSON.parse(decodeB64(j.content));
+    if(!data || !Array.isArray(data.records)){ throw new Error('云端数据文件格式不正确'); }
+    if(!confirm('将从 GitHub 拉取数据并覆盖当前设备数据（历史、自定义动作、今日选择）。确定？')) return;
+    state.records = (data.records||[]).map(sanitizeRec).filter(function(r){ return r.date; });
+    state.records.sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+    state.edit = data.edit || {};
+    state.customToday = data.customToday || null;
+    state.training = null;
+    state.stash = null;
+    save();
+    var target = autoDay();
+    selectDay(target==='rest'?'rest':target, false);
+    renderHistory(); renderStats(); renderPlan();
+    setGhStatus('拉取成功：云端数据已导入本机', 'ok');
+  }).catch(function(err){
+    setGhStatus('拉取失败：'+err.message, 'err');
+  }).then(function(){ btn.disabled = false; });
+});
+
+/* ================= 渲染：统计 ================= */
+function renderStats(){
+  var recs = state.records;
+  var n = recs.length;
+  document.getElementById('st-total').innerHTML = n+'<span>次</span>';
+
+  var doneSum=0, totalSum=0, durSum=0, daysSet={};
+  var dayCount = {chest:0,back:0,legs:0,shoulder:0,arms:0};
+  recs.forEach(function(r){
+    doneSum+=r.doneSets; totalSum+=r.totalSets; durSum+=r.duration;
+    daysSet[r.date]=true;
+    if(dayCount[r.dayId]!=null) dayCount[r.dayId]++;
+  });
+  var rate = totalSum ? Math.round(doneSum/totalSum*100) : 0;
+  document.getElementById('st-rate').innerHTML = rate+'<small>%</small>';
+  document.getElementById('st-dur').innerHTML = Math.round(durSum/60)+'<small>min</small>';
+  var dcount = Object.keys(daysSet).length;
+  document.getElementById('st-days').innerHTML = dcount+'<small>天</small>';
+  document.getElementById('st-sets').innerHTML = doneSum+'<small>组</small>';
+
+  var dates = Object.keys(daysSet).sort();
+  var streak = 0;
+  var d = new Date();
+  var t = todayStr();
+  if(!daysSet[t]){ d.setDate(d.getDate()-1); }
+  while(true){
+    var key = calKey(d);
+    if(daysSet[key]){ streak++; d.setDate(d.getDate()-1); }
+    else break;
+  }
+  document.getElementById('st-streak').innerHTML = streak+'<span>天</span>';
+  var maxStreak = 0, cur=0, prev=null;
+  dates.forEach(function(day){
+    if(prev){
+      var gap = daysBetween(prev, day);
+      if(gap===1){ cur++; } else { cur=1; }
+    } else { cur=1; }
+    if(cur>maxStreak) maxStreak=cur;
+    prev=day;
+  });
+  document.getElementById('st-streak-sub').textContent = '最长连续：'+maxStreak+' 天';
+
+  var dist = document.getElementById('st-dist');
+  var max = 1;
+  CYCLES.forEach(function(id){ if(dayCount[id]>max) max=dayCount[id]; });
+  var html = '';
+  CYCLES.forEach(function(id){
+    var c = dayCount[id];
+    var p = n ? Math.round(c/n*100) : 0;
+    var w = Math.round(c/max*100);
+    html += '<div class="dist-row"><span class="dist-name">'+DAYS[id].name+'</span>'+
+      '<div class="dist-bar"><div class="dist-fill" style="width:'+w+'%"></div></div>'+
+      '<div class="dist-num"><b>'+c+' 次</b> · '+p+'%</div></div>';
+  });
+  dist.innerHTML = html;
+}
+
+/* ================= 渲染：计划 ================= */
+function renderPlan(){
+  var list = document.getElementById('plan-list');
+  var html = '';
+  for(var i=0;i<5;i++){
+    var id = CYCLES[i];
+    var d = DAYS[id];
+    var isOpen = openActions['plan_'+id];
+    html += '<div class="plan-day'+(isOpen?' open':'')+'">'+
+      '<div class="plan-head" data-p="'+id+'">'+
+        '<div class="ph-idx num">'+pad(i+1)+'</div>'+
+        '<div class="plan-main"><div class="plan-title">'+d.name+' · '+d.en+'</div>'+
+        '<div class="plan-sub">'+d.focus+'</div></div>'+
+        '<div class="plan-arrow"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></div>'+
+      '</div>'+
+      '<div class="plan-body">'+
+        '<div style="font-size:12px;color:var(--txt3);padding:8px 0 4px;line-height:1.65">'+esc(d.note)+'</div>'+
+        '<div class="sec-title" style="margin:8px 0 2px;font-size:12.5px">热身<span class="tag">激活</span></div>'+
+        d.warm.map(function(a,ai){ return '<div class="plan-item"><span class="pi-n">'+(ai+1)+'</span><span class="pi-t">'+esc(a.name)+'</span><span class="pi-s num">'+a.sets+'组×'+esc(a.reps)+'</span></div>'; }).join('')+
+        '<div class="sec-title" style="margin:10px 0 2px;font-size:12.5px">正式训练<span class="tag">'+ (id==='arms' ? '两套方案' : '计入进度') +'</span></div>'+
+        (id==='arms' ?
+          (d.mainFull.map(function(a,ai){ return '<div class="plan-item"><span class="pi-n">'+(ai+1)+'</span><span class="pi-t">'+esc(a.name)+'</span><span class="pi-s num">'+a.sets+'组×'+esc(a.reps)+'</span></div>'; }).join('')+
+           '<div style="font-size:11.5px;color:var(--txt3);padding:6px 0 2px">超级组版（二练/补充，约 30 分钟）：</div>'+
+           d.mainSuper.map(function(a,ai){ return '<div class="plan-item"><span class="pi-n">S'+(ai+1)+'</span><span class="pi-t">'+esc(a.name)+'</span><span class="pi-s num">'+a.sets+'组×'+esc(a.reps)+'</span></div>'; }).join(''))
+          :
+          d.main.map(function(a,ai){ return '<div class="plan-item"><span class="pi-n">'+(ai+1)+'</span><span class="pi-t">'+esc(a.name)+'</span><span class="pi-s num">'+a.sets+'组×'+esc(a.reps)+'</span></div>'; }).join('')
+        )+
+        (d.abs ? '<div class="sec-title" style="margin:10px 0 2px;font-size:12.5px">核心附加<span class="opt">可选</span></div>'+
+          d.abs.map(function(a,ai){ return '<div class="plan-item"><span class="pi-n">A'+(ai+1)+'</span><span class="pi-t">'+esc(a.name)+'</span><span class="pi-s num">'+a.sets+'组×'+esc(a.reps)+'</span></div>'; }).join('') : '')+
+      '</div></div>';
+  }
+  list.innerHTML = html;
+  list.querySelectorAll('.plan-head').forEach(function(head){
+    head.addEventListener('click', function(){
+      var id2 = head.getAttribute('data-p');
+      openActions['plan_'+id2] = !openActions['plan_'+id2];
+      renderPlan();
+    });
+  });
+}
+
+/* ================= 视图切换 ================= */
+function switchView(v){
+  state.currentView = v;
+  save();
+  document.querySelectorAll('.view').forEach(function(s){ s.classList.remove('active'); });
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.tab').forEach(function(t){
+    t.classList.toggle('on', t.getAttribute('data-view')===v);
+  });
+  if(v==='history'){ initCal(); renderHistory(); }
+  if(v==='stats'){ renderStats(); }
+  if(v==='plan'){ renderPlan(); }
+  if(v==='today'){ renderToday(); }
+  if(v==='me'){ renderGh(); }
+}
+document.querySelectorAll('.tab').forEach(function(tab){
+  tab.addEventListener('click', function(){ switchView(tab.getAttribute('data-view')); });
+});
+document.getElementById('cal-prev').addEventListener('click', function(){ calMonth--; if(calMonth<0){calMonth=11;calYear--;} renderCal(); });
+document.getElementById('cal-next').addEventListener('click', function(){ calMonth++; if(calMonth>11){calMonth=0;calYear++;} renderCal(); });
+document.getElementById('btn-reset').addEventListener('click', function(){
+  if(confirm('确定清除全部训练数据？此操作不可恢复。')){
+    state = defaultState();
+    state.edit = {}; state.customToday = null;
+    save();
+    selectDay('chest', false);
+    renderHistory(); renderStats(); renderPlan();
+  }
+});
+
+/* ================= 启动 ================= */
+(function init(){
+  document.getElementById('today-date').textContent = fmtDate(todayStr());
+  if(!state.training){
+    var target = null;
+    if(state.customToday && state.customToday.date===todayStr()){
+      target = state.customToday.dayId;
+    } else {
+      state.customToday = null;
+      target = autoDay();
+    }
+    selectDay(target==='rest'?'rest':target, false);
+  } else {
+    renderToday();
+  }
+  switchView(state.currentView || 'today');
+})();
+</script>
+</body>
+</html>
